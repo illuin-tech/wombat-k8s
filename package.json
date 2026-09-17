@@ -1,0 +1,15 @@
+{
+  "name": "wombat-deploy",
+  "description": "Pulumi resource for wombat",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "dependencies": {
+    "@pulumi/kubernetes": "^4.33.0",
+    "@pulumi/pulumi": "*",
+    "apache-md5": "^1.1.8",
+    "yaml": "^2.7.0"
+  }
+}

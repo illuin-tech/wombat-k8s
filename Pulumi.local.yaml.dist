@@ -1,0 +1,60 @@
+config:
+  wombat:service:
+    namespace: my-namespace
+    environment: local
+    container:
+      imageVersion: 0.5.1
+      # optional pull secret, to be removed once images move to a public registry:
+      #   pulumi config set --secret --path 'service.container.pullSecret.serviceAccount' <gcr-service-account-json>
+      #pullSecret:
+      #  type: GAR
+      #  registry: europe-docker.pkg.dev
+      #  serviceAccount: CHANGEME
+    monitoredEnvironments:
+      environments:
+        environments:
+          test:
+            name: Preprod
+            assets:
+              - type: KUBERNETES_API
+                id: my-cluster
+                name: My cluster (test)
+                namespace: my-namespace
+                config-path: /path/to/kubeconfig
+                profile:
+                  provider: aws
+                  instance-type: c5a.4xlarge
+                  location: FRA
+                  lifespan: 43800 # hours
+              - type: LLM_STATIC
+                id: my-llm
+                name: My LLM (test)
+                profile:
+                  provider: mistralai
+                  model: mistral-large-latest
+                  location: FRA
+                  request-profile:
+                    output-token-count: 500
+                    request-per-year: 45000000 # ~5000 users * 5 calls * 5 inf. * 365
+      kubeconfigs:
+        - id: my-kubeconfig
+          # kubeconfig content should be a secret, matched to a KUBERNETES_API asset above by `id`, set via:
+          #   pulumi config set --secret --path 'service.monitoredEnvironments.kubeconfigs[0].content' "$(cat ~/.kube/dialogue-dev.config)"
+          content: CHANGEME
+    persistence:
+      type: SQLITE_WITH_BACKUP
+      backup:
+        cron: "0 0 2 * * ?"
+        restoreOnStartup: true
+        cleanup:
+          cron: "0 0 3 * * ?"
+          retainLast: 25
+        s3:
+          endpoint: "CHANGEME"
+          bucket: "wombat"
+          region: "CHANGEME"
+          keyPrefix: "test/sqlite/"
+          accessKey: "CHANGEME"
+          # secretKey should be a secret, set via:
+          #   pulumi config set --secret --path 'service.config.backup.s3.secretKey' <value>
+          secretKey: "CHANGEME"
