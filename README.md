@@ -24,59 +24,80 @@ pulumi stack select local --create
 pulumi up
 ```
 
-All service settings live under the `wombat:service` config key, matching the `WombatArgs` shape (`pulumi/components/wombat-args.ts`).
+All service settings live under the `wombat:service` config key, matching the `WombatArgs` shape (`pulumi/components/args/wombat-args.ts`).
 
 ## Tweaking important settings
 
 ### Monitoring configuration
 
 * `config.monitor.heartbeat`: CRON expression controlling how often monitored assets are polled.
-* `monitoredEnvironments.environments`: a map of environment id → `{ name, assets }`, where each asset has a `type` (`KUBERNETES_API`, `LLM_STATIC`, `LLM_PROMETHEUS`), an `id`, a `name`, and a `profile` configuration, they can be either one of:
-  * `KUBERNETES_API`
-  * `LLM_STATIC`
-  * `LLM_PROMETHEUS`
+* `monitoredEnvironments.environments`: a map of environment id → `{ id, name, assets }`, where each asset has a `type` (`KUBERNETES_API`, `LLM_STATIC`, `LLM_PROMETHEUS`), an `id`, an `environmentId`, a `name`, optional `resolvers`, and a `profile` configuration:
+  * `KUBERNETES_API`: reads cluster workload via a mounted kubeconfig.
+  * `LLM_STATIC`: static LLM traffic estimation.
+  * `LLM_PROMETHEUS`: live LLM metrics polled from a Prometheus endpoint, supporting optional `username` and `passwordKey`.
 
-Monitoring configurations are then compiled a `/monitored/monitored-environments.yaml` file and each `KUBERNETES_API` asset's `config-path` is automatically pointed at it.
+Monitoring configurations are compiled into a `/monitored/monitored-environments.yaml` file mounted in the container. Each `KUBERNETES_API` asset's `config-path` is automatically pointed to `/kubeconfigs/<id>.config`.
 
-### Kubeconfigs
+### Kubeconfigs & Secret Management
 
-Kubeconfigs are supplied inline as strings in `monitoredEnvironments.kubeconfigs`. Set it via the Pulumi CLI (do not commit it in plain text), e.g.:
+#### Kubeconfigs
+
+Kubeconfigs are supplied inline as strings in `monitoredEnvironments.kubeconfigs`. Set each via the Pulumi CLI as a secret:
 
 ```
 pulumi config set --secret --path 'service.monitoredEnvironments.kubeconfigs[0].content' -- "$(cat /path/to/kubeconfig)"
 ```
 
-They are then automatically compiled into mounted `ConfigMap`s during deployment under the `/kubeconfigs` directory.
+They are compiled into a Kubernetes `Secret` and mounted into the container under `/kubeconfigs/<id>.config`.
+
+#### Runtime Secrets
+
+Generic runtime secrets (e.g. Prometheus passwords referenced in `passwordKey`) are declared under `secrets`:
+
+```
+pulumi config set --secret --path 'service.secrets.WOMBAT_PROMETHEUS_PASSWORD' <password>
+```
+
+When provided, Pulumi provisions a Kubernetes `Secret` mounted as a directory volume at `/secrets`, and configures `wombat.secret.directory.path: /secrets`. The backend's `DirectorySecretResolver` resolves secrets directly from this directory to satisfy `RequiredSecretsCheck`.
+
+### Dependencies & Connectors
+
+Wombat can use either container sidecars or external endpoints for BoaviztAPI and Ecologits:
+
+* `dependencies.boaviztapi`: `CONTAINER` (defaults to sidecar with BoaviztAPI `2.4.1`) or `EXTERNAL` with `endpoint`.
+* `dependencies.ecologits`: `CONTAINER` (defaults to sidecar with Ecologits `0.0.2`) or `EXTERNAL` with `endpoint`.
+
+These are automatically mapped to `connector.boavizta.uri` and `connector.ecologits.uri` in the container configuration.
 
 ### Persistence
 
 #### Persistence modes
 
-* `config.persistence.enableKubernetesMetricsPersister` (boolean): enables/disables periodic persistence of Kubernetes metrics to the local SQLite database.
+* `persistence.type`: `SQLITE_TRANSIENT` (in-memory SQLite, Deployment) or `SQLITE_WITH_BACKUP` (file-backed SQLite with S3 backup, StatefulSet).
 
 #### S3 Backup
 
-* `config.backup.enabled` (boolean, default `false`): enables the periodic SQLite backup service.
-* `config.backup.cron`: cron expression for the backup schedule (default `0 0 2 * * ?`, i.e. daily at 2am).
-* `config.backup.s3`: **required when `backup.enabled` is `true`**. Set `endpoint`, `bucket`, `accessKey`, `secretKey`, and optionally `keyPrefix`. Without backup enabled, this block can be omitted entirely.
+* `persistence.backup.enabled` (boolean, default `true` when using `SQLITE_WITH_BACKUP`): enables the periodic SQLite backup service.
+* `persistence.backup.cron`: cron expression for the backup schedule (default `0 0 2 * * ?`, i.e. daily at 2am).
+* `persistence.backup.s3`: **required when `backup.enabled` is `true`**. Set `endpoint`, `bucket`, `accessKey`, `secretKey`, and optionally `keyPrefix` and `region`.
 
-Since `accessKey` / `secretKey` are sensitive, set them as secret config values rather than plain YAML, e.g.:
+Since `accessKey` / `secretKey` are sensitive, set them as secret config values rather than plain YAML:
 
 ```
-pulumi config set --path 'service.config.backup.enabled' true
-pulumi config set --path 'service.config.backup.s3.endpoint' https://s3.example.com
-pulumi config set --path 'service.config.backup.s3.bucket' wombat-backup
-pulumi config set --secret --path 'service.config.backup.s3.accessKey' <access-key>
-pulumi config set --secret --path 'service.config.backup.s3.secretKey' <secret-key>
+pulumi config set --path 'service.persistence.backup.s3.endpoint' https://s3.example.com
+pulumi config set --path 'service.persistence.backup.s3.bucket' wombat-backup
+pulumi config set --secret --path 'service.persistence.backup.s3.accessKey' <access-key>
+pulumi config set --secret --path 'service.persistence.backup.s3.secretKey' <secret-key>
 ```
 
 ## Other useful settings
 
 * `container.imageVersion`: the `wombat` image tag to deploy (overridden in CI via `pulumi config set --path 'service.container.imageVersion' $VERSION`).
-* `container.pullSecret`: optional; GCR service account JSON (as a secret) for pulling the image from a private registry.
+* `container.pullSecret`: optional; GAR/GCR service account JSON (as a secret) for pulling the image from a private registry.
 * `resources`: K8S `resources.limits` and `resources.requests` for the container.
-* `ingress`: optional; set `class_name`, `host`, `path`, `path_type`, `annotations`, and `tls_secret_name` to expose the service through an `Ingress`.
-  * `ingress.basicAuth`: optional; set `username` and `password` (optionally `realm`) to protect the ingress with HTTP basic auth. A `Secret` holding the corresponding htpasswd entry (`apr1`-hashed, natively supported by ingress-nginx) is created automatically, and the `nginx.ingress.kubernetes.io/auth-*` annotations are added on top of `ingress.annotations`. Set the password as a secret config value, e.g.:
+* `jvmOptions`: JVM options such as `xms: 512M`, `xmx: 512M`.
+* `ingress`: optional; set `className`, `host`, `path`, `pathType`, `annotations`, and `tlsSecretName` to expose the service through an `Ingress`.
+  * `ingress.basicAuth`: optional; set `username` and `password` (optionally `realm`) to protect the ingress with HTTP basic auth. A `Secret` holding the corresponding htpasswd entry (`apr1`-hashed) is created automatically. Set the password as a secret config value:
     ```
     pulumi config set --path 'service.ingress.basicAuth.username' admin
     pulumi config set --secret --path 'service.ingress.basicAuth.password' <password>
@@ -89,5 +110,3 @@ Locally, after configuring `Pulumi.local.yaml`, simply run:
 ```
 pulumi up
 ```
-
-On the CI side (`pulumi/.gitlab-ci.yml`) it will select the `STACK_NAME` stack, set `container.imageVersion` to `VERSION` and then run `pulumi up --yes`. 

@@ -7,7 +7,7 @@ function createKubeconfigConf(args: WombatArgs): ConfGroup {
     return new ConfGroup(
         "/kubeconfigs",
         "kubeconfigs",
-        args.monitoredEnvironments.kubeconfigs.map(kc => ({
+        (args.monitoredEnvironments.kubeconfigs || []).map(kc => ({
             id: kc.id.toString(),
             filename: `${kc.id}.config`,
             data: kc.content.toString(),
@@ -19,33 +19,40 @@ function createKubeconfigConf(args: WombatArgs): ConfGroup {
  * Rewrites a `KUBERNETES_API` asset: looks up its mounted kubeconfig by id and points `config-path` at it.
  * Throws if no matching kubeconfig was provided.
  */
-function rewriteKubernetesApiAsset(asset: K8SApiAsset, kubeconfigConf: ConfGroup, kubeconfigById: Map<string, Conf>): {[key: string]: unknown} {
+function rewriteKubernetesApiAsset(envId: string, asset: K8SApiAsset, kubeconfigConf: ConfGroup, kubeconfigById: Map<string, Conf>): {[key: string]: unknown} {
     const kubeconfig = kubeconfigById.get(asset.id);
     if (!kubeconfig)
         throw new Error(`No kubeconfig provided for monitored environment asset "${asset.id}"`);
 
     return {
         ...kebabize(asset),
+        "environment-id": envId,
         "config-path": `${kubeconfigConf.path}/${kubeconfig.filename}`,
     };
 }
 
-function rewriteLLMStaticAsset(asset: LLMStaticAsset): {[key: string]: unknown} {
-    return kebabize(asset);
+function rewriteLLMStaticAsset(envId: string, asset: LLMStaticAsset): {[key: string]: unknown} {
+    return {
+        ...kebabize(asset),
+        "environment-id": envId,
+    };
 }
 
-function rewriteLLMPrometheusAsset(asset: LLMPrometheusAsset): {[key: string]: unknown} {
-    return kebabize(asset);
+function rewriteLLMPrometheusAsset(envId: string, asset: LLMPrometheusAsset): {[key: string]: unknown} {
+    return {
+        ...kebabize(asset),
+        "environment-id": envId,
+    };
 }
 
-function rewriteAsset(asset: MonitoredEnvironmentAsset, kubeconfigConf: ConfGroup, kubeconfigById: Map<string, Conf>): {[key: string]: unknown} {
+function rewriteAsset(envId: string, asset: MonitoredEnvironmentAsset, kubeconfigConf: ConfGroup, kubeconfigById: Map<string, Conf>): {[key: string]: unknown} {
     switch (asset.type) {
         case MonitoredEnvironmentAssetType.KUBERNETES_API:
-            return rewriteKubernetesApiAsset(asset, kubeconfigConf, kubeconfigById);
+            return rewriteKubernetesApiAsset(envId, asset, kubeconfigConf, kubeconfigById);
         case MonitoredEnvironmentAssetType.LLM_STATIC:
-            return rewriteLLMStaticAsset(asset);
+            return rewriteLLMStaticAsset(envId, asset);
         case MonitoredEnvironmentAssetType.LLM_PROMETHEUS:
-            return rewriteLLMPrometheusAsset(asset);
+            return rewriteLLMPrometheusAsset(envId, asset);
     }
 }
 
@@ -57,8 +64,8 @@ export function createMonitoredEnvironmentsConf(args: WombatArgs): { kubeconfigC
         Object.entries(args.monitoredEnvironments.environments).map(([envId, env]) => [
             envId,
             {
-                name: env.name,
-                assets: env.assets.map((asset: MonitoredEnvironmentAsset) => rewriteAsset(asset, kubeconfigConf, kubeconfigById)),
+                id: env.id || envId,
+                assets: env.assets.map((asset: MonitoredEnvironmentAsset) => rewriteAsset(envId, asset, kubeconfigConf, kubeconfigById)),
             },
         ])
     );

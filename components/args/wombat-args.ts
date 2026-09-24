@@ -19,6 +19,15 @@ export interface WombatConfig {
     ui?: {
         maxDateRange?: Duration;
     };
+    connector?: {
+        boavizta?: {
+            uri?: pulumi.Input<string>;
+        };
+        ecologits?: {
+            uri?: pulumi.Input<string>;
+        };
+    };
+    [key: string]: any;
 }
 
 export interface WombatNativeConfig extends WombatConfig {
@@ -29,6 +38,9 @@ export interface WombatArgs {
     namespace: pulumi.Input<string>;
     environment: pulumi.Input<string>;
     config: WombatConfig;
+    secrets?: {
+        [key: string]: pulumi.Input<string>;
+    };
     monitoredEnvironments: {
         environments: {
             [envId: string]: MonitoredEnvironment;
