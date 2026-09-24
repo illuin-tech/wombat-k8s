@@ -3,41 +3,73 @@ config:
     namespace: my-namespace
     environment: local
     container:
-      imageVersion: 0.5.1
+      imageVersion: 0.6.2
       # optional pull secret, to be removed once images move to a public registry:
       #   pulumi config set --secret --path 'service.container.pullSecret.serviceAccount' <gcr-service-account-json>
       #pullSecret:
       #  type: GAR
       #  registry: europe-docker.pkg.dev
       #  serviceAccount: CHANGEME
+    dependencies:
+      boaviztapi:
+        type: CONTAINER
+        #type: EXTERNAL
+        #endpoint: "https://api.boavizta.org/v1/"
+      ecologits:
+        type: CONTAINER
+        #type: EXTERNAL
+        #endpoint: "https://api.ecologits.ai/"
+    config:
+      monitor:
+        heartbeat: "*/10 * * * * ?"
+      metrics:
+        aggregationWindow: { duration: 5, unit: MINUTES }
+      ui:
+        maxDateRange: { duration: 1, unit: MONTHS }
+    #secrets:
+    #  # optional generic runtime secrets mounted into /secrets (e.g. for Prometheus basic auth):
+    #  #   pulumi config set --secret --path 'service.secrets.WOMBAT_PROMETHEUS_PASSWORD' <value>
+    #  WOMBAT_PROMETHEUS_PASSWORD: CHANGEME
     monitoredEnvironments:
       environments:
-        environments:
-          test:
-            name: Preprod
-            assets:
-              - type: KUBERNETES_API
-                id: my-cluster
-                name: My cluster (test)
-                namespace: my-namespace
-                config-path: /path/to/kubeconfig
-                profile:
-                  provider: aws
-                  instance-type: c5a.4xlarge
-                  location: FRA
-                  lifespan: 43800 # hours
-              - type: LLM_STATIC
-                id: my-llm
-                name: My LLM (test)
-                profile:
-                  provider: mistralai
-                  model: mistral-large-latest
-                  location: FRA
-                  request-profile:
-                    output-token-count: 500
-                    request-per-year: 45000000 # ~5000 users * 5 calls * 5 inf. * 365
+        test:
+          name: Preprod
+          assets:
+            - type: KUBERNETES_API
+              id: my-cluster
+              name: My cluster (test)
+              namespace: my-namespace
+              configPath: /path/to/kubeconfig
+              profile:
+                provider: aws
+                instanceType: c5a.4xlarge
+                location: FRA
+                lifespan: 43800 # hours
+            - type: LLM_STATIC
+              id: my-llm
+              name: My LLM (test)
+              profile:
+                provider: mistralai
+                model: mistral-large-latest
+                location: FRA
+                requestProfile:
+                  outputTokenCount: 500
+                  requestPerYear: 45000000 # ~5000 users * 5 calls * 5 inf. * 365
+            - type: LLM_PROMETHEUS
+              id: my-served-llm
+              name: My served LLM (test)
+              prometheusUrl: http://prometheus.my-namespace:9090/
+              heartbeatSkip: 10
+              username: prometheus
+              passwordEnv: WOMBAT_PROMETHEUS_PASSWORD
+              profile:
+                provider: mistralai
+                model: mistral-large-latest
+                location: FRA
+                dynamicProfile:
+                  query: 'sum(increase(generation_tokens_total{model_name="mistral-large-latest"}[10s]))'
       kubeconfigs:
-        - id: my-kubeconfig
+        - id: my-cluster
           # kubeconfig content should be a secret, matched to a KUBERNETES_API asset above by `id`, set via:
           #   pulumi config set --secret --path 'service.monitoredEnvironments.kubeconfigs[0].content' "$(cat ~/.kube/dialogue-dev.config)"
           content: CHANGEME
@@ -56,5 +88,5 @@ config:
           keyPrefix: "test/sqlite/"
           accessKey: "CHANGEME"
           # secretKey should be a secret, set via:
-          #   pulumi config set --secret --path 'service.config.backup.s3.secretKey' <value>
+          #   pulumi config set --secret --path 'service.persistence.backup.s3.secretKey' <value>
           secretKey: "CHANGEME"

@@ -101,14 +101,61 @@ export class WombatResource extends pulumi.ComponentResource {
             : undefined;
 
         const nativeConfig: WombatNativeConfig = compileNativeConfig(args);
+
+        let secretsSecret: k8s.core.v1.Secret | undefined = undefined;
+        const secretsVolumeName = "wombat-service-secrets";
+        const secretsMountPath = "/secrets";
+
+        if (args.secrets && Object.keys(args.secrets).length > 0) {
+            nativeConfig.wombat = nativeConfig.wombat || {};
+            nativeConfig.wombat.secret = nativeConfig.wombat.secret || {};
+            nativeConfig.wombat.secret.directory = nativeConfig.wombat.secret.directory || {};
+            nativeConfig.wombat.secret.directory.path = secretsMountPath;
+
+            secretsSecret = new k8s.core.v1.Secret(`wombat-service-secrets-${args.environment}`, {
+                metadata: {
+                    namespace: args.namespace,
+                    labels: labels,
+                },
+                stringData: args.secrets,
+            });
+        }
+
         const confOverride: ConfGroup = createOverrideConf(nativeConfig);
         const confOverrideConfigMap = new k8s.core.v1.ConfigMap(`wombat-service-config-${args.environment}`, confOverride.asConfigMapArgs(args.namespace, labels));
 
         const { kubeconfigConf, monitoredEnvConf } = createMonitoredEnvironmentsConf(args);
-        const kubeconfigConfigMap = new k8s.core.v1.ConfigMap(`wombat-service-kubeconfigs-${args.environment}`, kubeconfigConf.asConfigMapArgs(args.namespace, labels));
+        const kubeconfigSecret = new k8s.core.v1.Secret(`wombat-service-kubeconfigs-${args.environment}`, kubeconfigConf.asSecretArgs(args.namespace, labels));
         const monitoredEnvConfigMap = new k8s.core.v1.ConfigMap(`wombat-service-monitored-environments-${args.environment}`, monitoredEnvConf.asConfigMapArgs(args.namespace, labels));
 
         const workloadConfig: WorkloadConfig = compileWorkloadConfig(args);
+
+        const volumeMounts: k8s.types.input.core.v1.VolumeMount[] = [
+            { name: confOverride.volumeName, mountPath: confOverride.path, readOnly: true },
+            { name: kubeconfigConf.volumeName, mountPath: kubeconfigConf.path, readOnly: true },
+            { name: monitoredEnvConf.volumeName, mountPath: monitoredEnvConf.path, readOnly: true },
+        ];
+
+        if (secretsSecret) {
+            volumeMounts.push({
+                name: secretsVolumeName,
+                mountPath: secretsMountPath,
+                readOnly: true,
+            });
+        }
+
+        const volumes: k8s.types.input.core.v1.Volume[] = [
+            { name: confOverride.volumeName, configMap: { name: confOverrideConfigMap.metadata.name } },
+            { name: kubeconfigConf.volumeName, secret: { secretName: kubeconfigSecret.metadata.name } },
+            { name: monitoredEnvConf.volumeName, configMap: { name: monitoredEnvConfigMap.metadata.name } },
+        ];
+
+        if (secretsSecret) {
+            volumes.push({
+                name: secretsVolumeName,
+                secret: { secretName: secretsSecret.metadata.name },
+            });
+        }
 
         const containers: k8s.types.input.core.v1.Container[] = [
             {
@@ -122,11 +169,7 @@ export class WombatResource extends pulumi.ComponentResource {
                     { name: "QUARKUS_CONFIG_LOCATIONS", value: confOverride.asFileList().join(',') },
                     { name: "MONITOR_ENVIRONMENTS_FILE", value: monitoredEnvConf.asFileList().join(',') },
                 ],
-                volumeMounts: [
-                    { name: confOverride.volumeName, mountPath: confOverride.path, readOnly: true },
-                    { name: kubeconfigConf.volumeName, mountPath: kubeconfigConf.path, readOnly: true },
-                    { name: monitoredEnvConf.volumeName, mountPath: monitoredEnvConf.path, readOnly: true },
-                ],
+                volumeMounts: volumeMounts,
                 startupProbe: {
                     httpGet: { port: "http", path: "/q/health/started" }
                 },
@@ -154,13 +197,9 @@ export class WombatResource extends pulumi.ComponentResource {
                 imagePullSecrets: pullSecret
                     ? [{ name: pullSecret.metadata.name }]
                     : undefined,
-                terminationGracePeriodSeconds: 120,
+                terminationGracePeriodSeconds: workloadConfig.podConfig.terminationGracePeriodSeconds || 120,
                 containers: containers,
-                volumes: [
-                    { name: confOverride.volumeName, configMap: { name: confOverrideConfigMap.metadata.name } },
-                    { name: kubeconfigConf.volumeName, configMap: { name: kubeconfigConfigMap.metadata.name } },
-                    { name: monitoredEnvConf.volumeName, configMap: { name: monitoredEnvConfigMap.metadata.name } },
-                ]
+                volumes: volumes
             },
         };
 

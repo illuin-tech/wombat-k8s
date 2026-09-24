@@ -8,13 +8,20 @@ export enum MonitoredEnvironmentAssetType {
 
 interface MonitoredEnvironmentAssetBase {
     id: string;
+    environmentId?: string;
     name: string;
+    resolvers?: {
+        cost?: pulumi.Input<string>;
+        activity?: pulumi.Input<string>;
+        impact?: pulumi.Input<string>;
+        [key: string]: pulumi.Input<string> | undefined;
+    };
 }
 
 export interface K8SApiAsset extends MonitoredEnvironmentAssetBase {
     type: MonitoredEnvironmentAssetType.KUBERNETES_API;
     namespace: string;
-    configPath: string; // rewritten at deploy time to the mounted kubeconfig path
+    configPath?: string; // rewritten at deploy time to the mounted kubeconfig path
     context?: string;
     readTimeout?: string;
     heartbeatSkip?: number;
@@ -44,7 +51,7 @@ export interface LLMPrometheusAsset extends MonitoredEnvironmentAssetBase {
     prometheusUrl: string;
     proxyUrl?: string;
     username?: string;
-    password?: string;
+    passwordKey?: string;
     heartbeatSkip?: number;
     profile: {
         provider: pulumi.Input<string>;
@@ -59,7 +66,7 @@ export interface LLMPrometheusAsset extends MonitoredEnvironmentAssetBase {
 export type MonitoredEnvironmentAsset = K8SApiAsset | LLMStaticAsset | LLMPrometheusAsset;
 
 export interface MonitoredEnvironment {
-    name: string;
+    id?: string;
     assets: MonitoredEnvironmentAsset[];
 }
 

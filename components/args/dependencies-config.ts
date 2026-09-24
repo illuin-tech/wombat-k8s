@@ -9,26 +9,25 @@ const ECOLOGITS_PORT: number = 5002;
  * Tweaks the Quarkus application configuration based on the WombatDependencyConfig.
  */
 export function applyDependenciesConfig(config: WombatNativeConfig, depConfig: WombatDependencyConfig): WombatNativeConfig {
-    config.quarkus = config.quarkus || {};
-    config.quarkus.restClient = config.quarkus.restClient || {};
+    config.connector = config.connector || {};
 
-    config.quarkus.restClient.boaviztaApiUrl = config.quarkus.restClient.boaviztaApiUrl || {};
+    config.connector.boavizta = config.connector.boavizta || {};
     switch (depConfig.boaviztapi.type) {
         case DependencyMode.EXTERNAL:
-            config.quarkus.restClient.boaviztaApiUrl.uri = (depConfig.boaviztapi as ExternalDependency).endpoint;
+            config.connector.boavizta.uri = (depConfig.boaviztapi as ExternalDependency).endpoint;
             break;
         case DependencyMode.CONTAINER:
-            config.quarkus.restClient.boaviztaApiUrl.uri = `http://localhost:${BOAVIZTAPI_PORT}/v1/`;
+            config.connector.boavizta.uri = `http://localhost:${BOAVIZTAPI_PORT}/v1/`;
             break;
     }
 
-    config.quarkus.restClient.ecologitsApiUrl = config.quarkus.restClient.ecologitsApiUrl || {};
+    config.connector.ecologits = config.connector.ecologits || {};
     switch (depConfig.ecologits.type) {
         case DependencyMode.EXTERNAL:
-            config.quarkus.restClient.ecologitsApiUrl.uri = (depConfig.ecologits as ExternalDependency).endpoint;
+            config.connector.ecologits.uri = (depConfig.ecologits as ExternalDependency).endpoint;
             break;
         case DependencyMode.CONTAINER:
-            config.quarkus.restClient.ecologitsApiUrl.uri = `http://localhost:${ECOLOGITS_PORT}/`;
+            config.connector.ecologits.uri = `http://localhost:${ECOLOGITS_PORT}/`;
             break;
     }
 
@@ -41,7 +40,7 @@ export function createDependencyContainers(depConfig: WombatDependencyConfig): k
         const containerConfig: ContainerDependency = depConfig.boaviztapi as ContainerDependency;
         containers.push({
             name: "boaviztapi",
-            image: computeImageName(containerConfig, "ghcr.io/boavizta/boaviztapi", "2.3.0"),
+            image: computeImageName(containerConfig, "ghcr.io/boavizta/boaviztapi", "2.4.1"),
             ports: [{ containerPort: BOAVIZTAPI_PORT, name: "boaviztapi" }],
             args: [
                 "uvicorn", "boaviztapi.main:app",
