@@ -1,6 +1,7 @@
 import {WombatArgs, WombatNativeConfig} from "./wombat-args";
 import {applyPersistenceConfig} from "./persistence-config";
 import {applyDependenciesConfig} from "./dependencies-config";
+import {applyExtensionsConfig} from "./extensions-config";
 import {PersistenceMode} from "./persistence-args";
 import {WorkloadType, WorkloadConfig} from "./k8s-config";
 
@@ -10,6 +11,7 @@ export function compileNativeConfig(args: WombatArgs): WombatNativeConfig {
     /* Apply dynamic mutations to the quarkus configuration */
     compiled = applyPersistenceConfig(compiled, args.persistence);
     compiled = applyDependenciesConfig(compiled, args.dependencies);
+    compiled = applyExtensionsConfig(compiled, args.extensions);
 
     return compiled;
 }

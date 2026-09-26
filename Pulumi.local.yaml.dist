@@ -30,6 +30,18 @@ config:
     #  # optional generic runtime secrets mounted into /secrets (e.g. for Prometheus basic auth):
     #  #   pulumi config set --secret --path 'service.secrets.WOMBAT_PROMETHEUS_PASSWORD' <value>
     #  WOMBAT_PROMETHEUS_PASSWORD: CHANGEME
+    #extensions:
+    #  # Mount user-provided JAR extensions into /extensions via PVC:
+    #  # Option A: Reference an existing PVC
+    #  existingClaimName: my-extensions-pvc
+    #  # Option B: Provision a managed PVC
+    #  pvc:
+    #    size: 1Gi
+    #    storageClassName: standard
+    #    accessModes:
+    #      - ReadWriteOnce
+    #  # Optional custom mount path (defaults to /extensions):
+    #  mountPath: /extensions
     monitoredEnvironments:
       environments:
         test:

@@ -128,6 +128,37 @@ export class WombatResource extends pulumi.ComponentResource {
         const kubeconfigSecret = new k8s.core.v1.Secret(`wombat-service-kubeconfigs-${args.environment}`, kubeconfigConf.asSecretArgs(args.namespace, labels));
         const monitoredEnvConfigMap = new k8s.core.v1.ConfigMap(`wombat-service-monitored-environments-${args.environment}`, monitoredEnvConf.asConfigMapArgs(args.namespace, labels));
 
+        let extensionsClaimName: pulumi.Input<string> | undefined = undefined;
+        const extensionsMountPath = args.extensions?.mountPath || "/extensions";
+        const extensionsVolumeName = "wombat-service-extensions";
+
+        if (args.extensions) {
+            if (args.extensions.existingClaimName) {
+                extensionsClaimName = args.extensions.existingClaimName;
+            }
+            else if (args.extensions.pvc?.existingClaimName) {
+                extensionsClaimName = args.extensions.pvc.existingClaimName;
+            }
+            else if (args.extensions.pvc) {
+                const extensionsPvc = new k8s.core.v1.PersistentVolumeClaim(`wombat-service-extensions-${args.environment}`, {
+                    metadata: {
+                        namespace: args.namespace,
+                        labels: labels,
+                    },
+                    spec: {
+                        accessModes: args.extensions.pvc.accessModes || ["ReadWriteOnce"],
+                        storageClassName: args.extensions.pvc.storageClassName,
+                        resources: {
+                            requests: {
+                                storage: args.extensions.pvc.size || "1Gi",
+                            },
+                        },
+                    },
+                });
+                extensionsClaimName = extensionsPvc.metadata.name;
+            }
+        }
+
         const workloadConfig: WorkloadConfig = compileWorkloadConfig(args);
 
         const volumeMounts: k8s.types.input.core.v1.VolumeMount[] = [
@@ -144,6 +175,14 @@ export class WombatResource extends pulumi.ComponentResource {
             });
         }
 
+        if (extensionsClaimName) {
+            volumeMounts.push({
+                name: extensionsVolumeName,
+                mountPath: extensionsMountPath,
+                readOnly: true,
+            });
+        }
+
         const volumes: k8s.types.input.core.v1.Volume[] = [
             { name: confOverride.volumeName, configMap: { name: confOverrideConfigMap.metadata.name } },
             { name: kubeconfigConf.volumeName, secret: { secretName: kubeconfigSecret.metadata.name } },
@@ -154,6 +193,16 @@ export class WombatResource extends pulumi.ComponentResource {
             volumes.push({
                 name: secretsVolumeName,
                 secret: { secretName: secretsSecret.metadata.name },
+            });
+        }
+
+        if (extensionsClaimName) {
+            volumes.push({
+                name: extensionsVolumeName,
+                persistentVolumeClaim: {
+                    claimName: extensionsClaimName,
+                    readOnly: true,
+                },
             });
         }
 
