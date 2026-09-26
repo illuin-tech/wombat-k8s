@@ -13,9 +13,6 @@ export interface WombatConfig {
         heartbeat?: pulumi.Input<string>;
         environmentsFile?: pulumi.Input<string>;
     };
-    metrics?: {
-        aggregationWindow?: Duration;
-    };
     ui?: {
         maxDateRange?: Duration;
     };
