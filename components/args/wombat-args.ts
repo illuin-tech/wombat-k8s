@@ -7,6 +7,7 @@ import {MonitoredEnvironment, KubeconfigEntry} from "./monitored-environments-ar
 import {IngressArgs} from "./k8s-args";
 import {PersistenceProfile} from "./persistence-args";
 import {WombatDependencyConfig} from "./dependencies-args";
+import {ExtensionsConfig} from "./extensions-args";
 
 export interface WombatConfig {
     monitor?: {
@@ -46,6 +47,7 @@ export interface WombatArgs {
     };
     persistence: PersistenceProfile;
     dependencies: WombatDependencyConfig;
+    extensions?: ExtensionsConfig;
     container: {
         imageVersion: pulumi.Input<string>;
         pullSecret?: PullSecretConfig;
