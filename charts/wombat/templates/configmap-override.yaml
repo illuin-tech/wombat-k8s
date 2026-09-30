@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wombat.fullname" . }}-override
+  labels:
+    {{- include "wombat.labels" . | nindent 4 }}
+data:
+  application.yaml: |
+    {{- $config := dict }}
+    {{- $quarkus := dict }}
+    {{- $datasource := dict }}
+    {{- $jdbc := dict }}
+    {{- if eq .Values.persistence.type "SQLITE_TRANSIENT" }}
+      {{- $_ := set $jdbc "url" "jdbc:sqlite::memory:" }}
+    {{- else if eq .Values.persistence.type "SQLITE_WITH_BACKUP" }}
+      {{- $_ := set $jdbc "url" "jdbc:sqlite:/var/tmp/wombat.db" }}
+      {{- $backup := dict "enabled" true }}
+      {{- if .Values.persistence.backup.cron }}
+        {{- $_ := set $backup "cron" .Values.persistence.backup.cron }}
+      {{- end }}
+      {{- if .Values.persistence.backup.s3 }}
+        {{- $s3 := dict }}
+        {{- if .Values.persistence.backup.s3.endpoint }}{{ $_ := set $s3 "endpoint" .Values.persistence.backup.s3.endpoint }}{{ end }}
+        {{- if .Values.persistence.backup.s3.bucket }}{{ $_ := set $s3 "bucket" .Values.persistence.backup.s3.bucket }}{{ end }}
+        {{- if .Values.persistence.backup.s3.region }}{{ $_ := set $s3 "region" .Values.persistence.backup.s3.region }}{{ end }}
+        {{- if .Values.persistence.backup.s3.keyPrefix }}{{ $_ := set $s3 "key-prefix" .Values.persistence.backup.s3.keyPrefix }}{{ end }}
+        {{- $_ := set $backup "s3" $s3 }}
+      {{- end }}
+      {{- $_ := set $config "backup" $backup }}
+    {{- end }}
+    {{- $_ := set $datasource "jdbc" $jdbc }}
+    {{- $_ := set $quarkus "datasource" $datasource }}
+    {{- $_ := set $config "quarkus" $quarkus }}
+
+    {{- $connector := dict }}
+    {{- if eq .Values.dependencies.boaviztapi.type "CONTAINER" }}
+      {{- $_ := set $connector "boavizta" (dict "uri" "http://localhost:5001/v1/") }}
+    {{- else if .Values.dependencies.boaviztapi.endpoint }}
+      {{- $_ := set $connector "boavizta" (dict "uri" .Values.dependencies.boaviztapi.endpoint) }}
+    {{- end }}
+
+    {{- if eq .Values.dependencies.ecologits.type "CONTAINER" }}
+      {{- $_ := set $connector "ecologits" (dict "uri" "http://localhost:5002/") }}
+    {{- else if .Values.dependencies.ecologits.endpoint }}
+      {{- $_ := set $connector "ecologits" (dict "uri" .Values.dependencies.ecologits.endpoint) }}
+    {{- end }}
+    {{- if $connector }}
+      {{- $_ := set $config "connector" $connector }}
+    {{- end }}
+
+    {{- if .Values.secrets }}
+      {{- $_ := set $config "wombat" (dict "secret" (dict "directory" (dict "path" "/secrets"))) }}
+    {{- end }}
+
+    {{- if .Values.extensions.enabled }}
+      {{- $_ := set $config "module" (dict "extension" (dict "path" (.Values.extensions.mountPath | default "/extensions"))) }}
+    {{- end }}
+
+    {{- $_ := set $config "tech" (dict "illuin" (dict "wombat" (dict "monitored-environments" (dict "path" "/monitored/monitored-environments.yaml")))) }}
+
+    {{- $merged := mergeOverwrite $config .Values.configOverrides }}
+    {{- toYaml $merged | nindent 4 }}

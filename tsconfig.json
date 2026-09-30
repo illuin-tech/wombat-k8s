@@ -5,6 +5,7 @@
     "target": "es2016",
     "module": "commonjs",
     "moduleResolution": "node",
+    "declaration": true,
     "sourceMap": true,
     "experimentalDecorators": true,
     "pretty": true,
@@ -13,7 +14,12 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "files": [
-    "index.ts"
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "bin",
+    "node_modules",
+    "charts"
   ]
 }

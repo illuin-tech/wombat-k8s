@@ -1,8 +1,18 @@
-import * as pulumi from "@pulumi/pulumi";
-import { WombatResource } from "./components/wombat";
-import { WombatArgs } from "./components/args/wombat-args";
-
-const config = new pulumi.Config();
-const serviceArgs: WombatArgs = config.requireObject<WombatArgs>("service");
-
-new WombatResource("wombat", serviceArgs);
+export * from "./components/wombat";
+export * from "./components/args/wombat-args";
+export * from "./components/args/wombat-config";
+export * from "./components/args/commons-args";
+export * from "./components/args/commons-config";
+export * from "./components/args/dependencies-args";
+export * from "./components/args/dependencies-config";
+export * from "./components/args/extensions-args";
+export * from "./components/args/extensions-config";
+export * from "./components/args/k8s-args";
+export * from "./components/args/k8s-config";
+export * from "./components/args/monitored-environments-args";
+export * from "./components/args/monitored-environments-config";
+export * from "./components/args/persistence-args";
+export * from "./components/args/persistence-config";
+export * from "./components/utils/basic-auth";
+export * from "./components/utils/image-pull-secrets";
+export * from "./components/utils/tools";

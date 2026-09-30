@@ -1,0 +1,13 @@
+apiVersion: v2
+name: wombat
+description: Helm chart for Wombat sustainability monitoring and reporting
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://github.com/illuin-tech/wombat
+sources:
+  - https://github.com/illuin-tech/wombat
+maintainers:
+  - name: Illuin Technology
+    email: contact@illuin.tech
+    url: https://www.illuin.tech

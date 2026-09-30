@@ -1,0 +1,17 @@
+{{- if and .Values.extensions.enabled (not .Values.extensions.existingClaim) -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "wombat.fullname" . }}-extensions
+  labels:
+    {{- include "wombat.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.extensions.storageClassName }}
+  storageClassName: {{ .Values.extensions.storageClassName | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.extensions.size | default "1Gi" }}
+{{- end }}

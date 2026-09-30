@@ -1,0 +1,165 @@
+{{- if ne .Values.persistence.type "SQLITE_TRANSIENT" -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "wombat.fullname" . }}
+  labels:
+    {{- include "wombat.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "wombat.fullname" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "wombat.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config-override: {{ include (print $.Template.BasePath "/configmap-override.yaml") . | sha256sum }}
+        checksum/config-monitored: {{ include (print $.Template.BasePath "/configmap-monitored.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "wombat.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "wombat.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 120
+      containers:
+        - name: wombat
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: JAVA_OPTS_APPEND
+              value: "-Dquarkus.config.locations=/conf/application.yaml -Xms{{ .Values.jvmOptions.xms }} -Xmx{{ .Values.jvmOptions.xmx }}"
+            {{- if and .Values.persistence.backup.enabled (or .Values.persistence.backup.s3.existingSecret .Values.persistence.backup.s3.accessKey) }}
+            - name: WOMBAT_BACKUP_S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.persistence.backup.s3.existingSecret | default (printf "%s-s3-backup" (include "wombat.fullname" .)) }}
+                  key: access-key
+            - name: WOMBAT_BACKUP_S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.persistence.backup.s3.existingSecret | default (printf "%s-s3-backup" (include "wombat.fullname" .)) }}
+                  key: secret-key
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/tmp
+            - name: conf-override
+              mountPath: /conf
+            - name: conf-monitored
+              mountPath: /monitored
+            {{- if .Values.monitoredEnvironments.kubeconfigs }}
+            - name: kubeconfigs
+              mountPath: /kubeconfigs
+            {{- end }}
+            {{- if .Values.secrets }}
+            - name: secrets
+              mountPath: /secrets
+            {{- end }}
+            {{- if .Values.extensions.enabled }}
+            - name: extensions
+              mountPath: {{ .Values.extensions.mountPath | default "/extensions" }}
+            {{- end }}
+        {{- if eq .Values.dependencies.boaviztapi.type "CONTAINER" }}
+        - name: boaviztapi
+          image: "{{ .Values.dependencies.boaviztapi.image.repository }}:{{ .Values.dependencies.boaviztapi.image.tag }}"
+          imagePullPolicy: {{ .Values.dependencies.boaviztapi.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: boaviztapi
+              containerPort: 5001
+              protocol: TCP
+          args:
+            - "uvicorn"
+            - "boaviztapi.main:app"
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "5001"
+          resources:
+            {{- toYaml .Values.dependencies.boaviztapi.resources | nindent 12 }}
+        {{- end }}
+        {{- if eq .Values.dependencies.ecologits.type "CONTAINER" }}
+        - name: ecologits
+          image: "{{ .Values.dependencies.ecologits.image.repository }}:{{ .Values.dependencies.ecologits.image.tag }}"
+          imagePullPolicy: {{ .Values.dependencies.ecologits.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: ecologits
+              containerPort: 5002
+              protocol: TCP
+          args:
+            - "/app/.venv/bin/fastapi"
+            - "run"
+            - "app/main.py"
+            - "--port"
+            - "5002"
+            - "--host"
+            - "0.0.0.0"
+          resources:
+            {{- toYaml .Values.dependencies.ecologits.resources | nindent 12 }}
+        {{- end }}
+      volumes:
+        - name: conf-override
+          configMap:
+            name: {{ include "wombat.fullname" . }}-override
+        - name: conf-monitored
+          configMap:
+            name: {{ include "wombat.fullname" . }}-monitored
+        {{- if .Values.monitoredEnvironments.kubeconfigs }}
+        - name: kubeconfigs
+          secret:
+            secretName: {{ include "wombat.fullname" . }}-kubeconfigs
+        {{- end }}
+        {{- if .Values.secrets }}
+        - name: secrets
+          secret:
+            secretName: {{ include "wombat.fullname" . }}-secrets
+        {{- end }}
+        {{- if .Values.extensions.enabled }}
+        - name: extensions
+          persistentVolumeClaim:
+            claimName: {{ .Values.extensions.existingClaim | default (printf "%s-extensions" (include "wombat.fullname" .)) }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- if .Values.persistence.storageClassName }}
+        storageClassName: {{ .Values.persistence.storageClassName | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | default "10Gi" }}
+{{- end }}

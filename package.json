@@ -1,15 +1,29 @@
 {
-  "name": "wombat-deploy",
-  "description": "Pulumi resource for wombat",
-  "main": "index.ts",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "name": "@illuin-public/wombat-pulumi",
+  "version": "1.0.0",
+  "description": "Pulumi component resource for deploying Wombat to Kubernetes",
+  "main": "bin/index.js",
+  "types": "bin/index.d.ts",
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
-  "author": "",
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build"
+  },
+  "author": "Illuin Technology",
+  "license": "Apache-2.0",
   "dependencies": {
     "@pulumi/kubernetes": "^4.33.0",
     "@pulumi/pulumi": "*",
     "apache-md5": "^1.1.8",
     "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
   }
 }

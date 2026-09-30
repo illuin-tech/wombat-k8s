@@ -1,0 +1,46 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "wombat.fullname" . -}}
+{{- $svcPort := .Values.service.port -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "wombat.labels" . | nindent 4 }}
+  annotations:
+    {{- if and .Values.ingress.basicAuth.enabled (or .Values.ingress.basicAuth.password .Values.ingress.basicAuth.existingSecret) }}
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: {{ .Values.ingress.basicAuth.existingSecret | default (printf "%s-basic-auth" $fullName) }}
+    nginx.ingress.kubernetes.io/auth-realm: {{ .Values.ingress.basicAuth.realm | default "Wombat Dashboard" | quote }}
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if or .Values.ingress.tls .Values.ingress.tlsSecretName }}
+  tls:
+    {{- if .Values.ingress.tls }}
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+    {{- else }}
+    - secretName: {{ .Values.ingress.tlsSecretName }}
+      hosts:
+        - {{ .Values.ingress.host | quote }}
+    {{- end }}
+  {{- end }}
+  rules:
+    - {{- if .Values.ingress.host }}
+      host: {{ .Values.ingress.host | quote }}
+      {{- end }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.path | default "/" }}
+            pathType: {{ .Values.ingress.pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $svcPort }}
+{{- end }}
