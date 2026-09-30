@@ -17,17 +17,19 @@ jobs:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: pulumi/package-lock.json
       - name: Extract version
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
       - name: Update package version and build
+        working-directory: pulumi
         run: |
           npm version ${VERSION} --no-git-tag-version
           npm ci
           npm run build
       - name: Publish to NPM
+        working-directory: pulumi
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -51,7 +53,7 @@ jobs:
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | helm registry login registry-1.docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
       - name: Package Helm Chart
         run: |
-          helm package charts/wombat --version ${VERSION} --app-version ${VERSION}
+          helm package helm/wombat --version ${VERSION} --app-version ${VERSION}
       - name: Push Helm Chart OCI
         run: |
           helm push wombat-${VERSION}.tgz oci://registry-1.docker.io/illuin

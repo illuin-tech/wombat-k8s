@@ -10,6 +10,9 @@ jobs:
   npm-build:
     name: Build NPM Package
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pulumi
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -17,7 +20,7 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: pulumi/package-lock.json
       - name: Install dependencies
         run: npm ci
       - name: Build TypeScript
@@ -33,4 +36,4 @@ jobs:
         with:
           version: v3.14.0
       - name: Lint Helm Chart
-        run: helm lint charts/wombat
+        run: helm lint helm/wombat

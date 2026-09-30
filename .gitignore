@@ -1,5 +1,8 @@
 /bin/
 /node_modules/
+/pulumi/bin/
+/pulumi/node_modules/
+*.tgz
 *.iml
 /data
 *.local.yaml

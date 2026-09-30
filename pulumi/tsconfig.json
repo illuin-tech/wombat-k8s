@@ -19,7 +19,6 @@
   ],
   "exclude": [
     "bin",
-    "node_modules",
-    "charts"
+    "node_modules"
   ]
 }
