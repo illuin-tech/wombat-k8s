@@ -20,7 +20,7 @@ function createKubeconfigConf(args: WombatArgs): ConfGroup {
  * Throws if no matching kubeconfig was provided.
  */
 function rewriteKubernetesApiAsset(envId: string, asset: K8SApiAsset, kubeconfigConf: ConfGroup, kubeconfigById: Map<string, Conf>): {[key: string]: unknown} {
-    const kubeconfig = kubeconfigById.get(asset.id);
+    const kubeconfig = kubeconfigById.get(asset.id.toString());
     if (!kubeconfig)
         throw new Error(`No kubeconfig provided for monitored environment asset "${asset.id}"`);
 
@@ -53,6 +53,11 @@ function rewriteAsset(envId: string, asset: MonitoredEnvironmentAsset, kubeconfi
             return rewriteLLMStaticAsset(envId, asset);
         case MonitoredEnvironmentAssetType.LLM_PROMETHEUS:
             return rewriteLLMPrometheusAsset(envId, asset);
+        default:
+            return {
+                ...kebabize(asset),
+                "environment-id": envId,
+            };
     }
 }
 

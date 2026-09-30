@@ -47,7 +47,7 @@ config:
         test:
           name: Preprod
           assets:
-            - type: KUBERNETES_API
+            - type: tech.illuin.wombat-module.kubernetes-api
               id: my-cluster
               name: My cluster (test)
               namespace: my-namespace
@@ -57,17 +57,18 @@ config:
                 instanceType: c5a.4xlarge
                 location: FRA
                 lifespan: 43800 # hours
-            - type: LLM_STATIC
+            - type: tech.illuin.wombat-module.llm-static
               id: my-llm
               name: My LLM (test)
               profile:
-                provider: mistralai
-                model: mistral-large-latest
-                location: FRA
-                requestProfile:
-                  outputTokenCount: 500
-                  requestPerYear: 45000000 # ~5000 users * 5 calls * 5 inf. * 365
-            - type: LLM_PROMETHEUS
+                models:
+                  - provider: mistralai
+                    model: mistral-large-latest
+                    location: FRA
+                    requestProfile:
+                      outputTokenCount: 500
+                      requestPerYear: 45000000 # ~5000 users * 5 calls * 5 inf. * 365
+            - type: tech.illuin.wombat-module.llm-prometheus
               id: my-served-llm
               name: My served LLM (test)
               prometheusUrl: http://prometheus.my-namespace:9090/
