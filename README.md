@@ -1,5 +1,9 @@
 # Wombat on Kubernetes
 
+[![Build](https://github.com/illuin-tech/wombat/actions/workflows/maven-build.yml/badge.svg?branch=master)](https://github.com/illuin-tech/wombat/actions/workflows/maven-build.yml)
+[![NPM Version](https://img.shields.io/npm/v/%40illuin-public%2Fwombat-pulumi)](https://www.npmjs.com/package/@illuin-public/wombat-pulumi)
+[![Helm Version](https://img.shields.io/docker/v/illuin/wombat-chart?label=helm)](https://hub.docker.com/r/illuin/wombat-chart)
+
 This repository provides Kubernetes deployment tooling for the [Wombat Carbon Tracker](https://github.com/illuin-tech/wombat) application:
 
 * `pulumi/`: a Pulumi Component Resource library (`@illuin-public/wombat-pulumi` on NPM) for managing Wombat deployments programmatically via Pulumi (in TypeScript) - _**This is the recommended way to deploy Wombat at the moment, as it is the one we put the most effort on**_
