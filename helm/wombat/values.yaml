@@ -80,6 +80,10 @@ persistence:
   backup:
     enabled: false
     cron: "0 0 2 * * ?"
+    restoreOnStartup: true
+    cleanup:
+      cron: "0 0 3 * * ?"
+      retainLast: 25
     s3:
       endpoint: ""
       bucket: ""
@@ -95,10 +99,10 @@ dependencies:
     type: CONTAINER # CONTAINER or EXTERNAL
     endpoint: ""
     image:
-      repository: boavizta/boaviztapi
+      repository: ghcr.io/boavizta/boaviztapi
       tag: "2.4.1"
       pullPolicy: IfNotPresent
-    port: 5000
+    port: 5001
     resources:
       limits:
         cpu: 500m
@@ -110,10 +114,10 @@ dependencies:
     type: CONTAINER # CONTAINER or EXTERNAL
     endpoint: ""
     image:
-      repository: ecologits/ecologits
+      repository: ghcr.io/mlco2/ecologits-api
       tag: "0.0.2"
       pullPolicy: IfNotPresent
-    port: 5001
+    port: 5002
     resources:
       limits:
         cpu: 500m
@@ -121,6 +125,19 @@ dependencies:
       requests:
         cpu: 100m
         memory: 256Mi
+
+# Application core configuration
+config:
+  monitor:
+    heartbeat: "0 * * * * ?"
+  metrics:
+    aggregationWindow:
+      duration: 5
+      unit: MINUTES
+  ui:
+    maxDateRange:
+      duration: 1
+      unit: YEARS
 
 # Dynamic extensions storage
 extensions:
@@ -139,23 +156,34 @@ configOverrides: {}
 
 # Monitored environments and assets configuration
 monitoredEnvironments:
-  heartbeat: "0 * * * * ?"
   environments: {}
   # Example:
-  # dev-cluster:
-  #   id: dev-cluster
-  #   name: Dev Cluster
+  # test:
+  #   name: Test Environment
   #   assets:
-  #     - type: KUBERNETES_API
-  #       id: k8s-dev
-  #       name: Dev K8s
-  #       environmentId: dev-cluster
+  #     - type: tech.illuin.wombat-module.kubernetes-api
+  #       id: my-cluster
+  #       name: My cluster (test)
+  #       namespace: my-namespace
+  #       configPath: /path/to/kubeconfig
   #       profile:
-  #         type: KUBERNETES_API
-  #         cluster-name: dev
-  #         poll-interval: 60s
+  #         provider: aws
+  #         instanceType: c5a.4xlarge
+  #         location: FRA
+  #         lifespan: 43800 # hours
+  #     - type: tech.illuin.wombat-module.llm-static
+  #       id: my-llm
+  #       name: My LLM (test)
+  #       profile:
+  #         models:
+  #           - provider: mistralai
+  #             model: mistral-large-latest
+  #             location: FRA
+  #             requestProfile:
+  #               outputTokenCount: 300
+  #               requestPerYear: 9125000
   kubeconfigs: []
-  # - id: dev-cluster
+  # - id: my-cluster
   #   content: |
   #     apiVersion: v1
   #     ...

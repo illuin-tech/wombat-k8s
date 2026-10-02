@@ -1,0 +1,34 @@
+name: Release and Publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-helm:
+    name: Publish Helm Chart to DockerHub
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+      - name: Log in to DockerHub OCI Registry
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | helm registry login registry-1.docker.io -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      - name: Package Helm Chart
+        run: |
+          helm package helm/wombat --version ${{ github.ref_name }} --app-version ${{ github.ref_name }}
+      - name: Push Helm Chart OCI
+        run: |
+          helm push wombat-${{ github.ref_name }}.tgz oci://registry-1.docker.io/illuin
+      - name: Update Docker Hub Description
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: illuin/wombat-helm
+          short-description: ${{ github.event.repository.description }}
+          readme-filepath: ./helm/doc/dockerhub/README.md

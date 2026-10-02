@@ -1,0 +1,92 @@
+config:
+  wombat:service:
+    namespace: my-namespace
+    environment: local
+    container:
+      imageVersion: 0.11.0
+      # optional pull secret, to be removed once images move to a public registry:
+      #   pulumi config set --secret --path 'service.container.pullSecret.serviceAccount' <gcr-service-account-json>
+      #pullSecret:
+      #  type: GAR
+      #  registry: europe-docker.pkg.dev
+      #  serviceAccount: CHANGEME
+    dependencies:
+      boaviztapi:
+        type: CONTAINER
+        #type: EXTERNAL
+        #endpoint: "https://api.boavizta.org/v1/"
+      ecologits:
+        type: CONTAINER
+        #type: EXTERNAL
+        #endpoint: "https://api.ecologits.ai/"
+    config:
+      monitor:
+        heartbeat: "*/10 * * * * ?"
+      metrics:
+        aggregationWindow: { duration: 5, unit: MINUTES }
+      ui:
+        maxDateRange: { duration: 1, unit: YEARS }
+    #secrets:
+    #  # optional generic runtime secrets mounted into /secrets (e.g. for Prometheus basic auth):
+    #  #   pulumi config set --secret --path 'service.secrets.WOMBAT_PROMETHEUS_PASSWORD' <value>
+    #  WOMBAT_PROMETHEUS_PASSWORD: CHANGEME
+    #extensions:
+    #  # Mount user-provided JAR extensions into /extensions via PVC:
+    #  # Option A: Reference an existing PVC
+    #  existingClaimName: my-extensions-pvc
+    #  # Option B: Provision a managed PVC
+    #  pvc:
+    #    size: 1Gi
+    #    storageClassName: standard
+    #    accessModes:
+    #      - ReadWriteOnce
+    #  # Optional custom mount path (defaults to /extensions):
+    #  mountPath: /extensions
+    monitoredEnvironments:
+      environments:
+        test:
+          name: Test Environment
+          assets:
+            - type: tech.illuin.wombat-module.kubernetes-api
+              id: my-cluster
+              name: My cluster (test)
+              namespace: my-namespace
+              configPath: /path/to/kubeconfig
+              profile:
+                provider: aws
+                instanceType: c5a.4xlarge
+                location: FRA
+                lifespan: 43800 # hours
+            - type: tech.illuin.wombat-module.llm-static
+              id: my-llm
+              name: My LLM (test)
+              profile:
+                models:
+                  - provider: mistralai
+                    model: mistral-large-latest
+                    location: FRA
+                    requestProfile:
+                      outputTokenCount: 300
+                      requestPerYear: 9125000 # ~1000 users * 5 calls * 5 inferences * 365
+      kubeconfigs:
+        - id: my-cluster
+          # kubeconfig content should be a secret, matched to a KUBERNETES_API asset above by `id`, set via:
+          #   pulumi config set --secret --path 'service.monitoredEnvironments.kubeconfigs[0].content' "$(cat ~/.kube/dialogue-dev.config)"
+          content: CHANGEME
+    persistence:
+      type: SQLITE_WITH_BACKUP
+      backup:
+        cron: "0 0 2 * * ?"
+        restoreOnStartup: true
+        cleanup:
+          cron: "0 0 3 * * ?"
+          retainLast: 25
+        s3:
+          endpoint: "CHANGEME"
+          bucket: "wombat"
+          region: "CHANGEME"
+          keyPrefix: "test/sqlite/"
+          accessKey: "CHANGEME"
+          # secretKey should be a secret, set via:
+          #   pulumi config set --secret --path 'service.persistence.backup.s3.secretKey' <value>
+          secretKey: "CHANGEME"

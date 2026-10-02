@@ -1,5 +1,5 @@
 apiVersion: v2
-name: wombat
+name: wombat-chart
 description: Helm chart for Wombat sustainability monitoring and reporting
 type: application
 version: 1.0.0

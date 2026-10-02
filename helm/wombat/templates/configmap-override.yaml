@@ -18,6 +18,15 @@ data:
       {{- if .Values.persistence.backup.cron }}
         {{- $_ := set $backup "cron" .Values.persistence.backup.cron }}
       {{- end }}
+      {{- if hasKey .Values.persistence.backup "restoreOnStartup" }}
+        {{- $_ := set $backup "restore-on-startup" .Values.persistence.backup.restoreOnStartup }}
+      {{- end }}
+      {{- if .Values.persistence.backup.cleanup }}
+        {{- $cleanup := dict "enabled" true }}
+        {{- if .Values.persistence.backup.cleanup.cron }}{{ $_ := set $cleanup "cron" .Values.persistence.backup.cleanup.cron }}{{ end }}
+        {{- if .Values.persistence.backup.cleanup.retainLast }}{{ $_ := set $cleanup "retain-last" .Values.persistence.backup.cleanup.retainLast }}{{ end }}
+        {{- $_ := set $backup "cleanup" $cleanup }}
+      {{- end }}
       {{- if .Values.persistence.backup.s3 }}
         {{- $s3 := dict }}
         {{- if .Values.persistence.backup.s3.endpoint }}{{ $_ := set $s3 "endpoint" .Values.persistence.backup.s3.endpoint }}{{ end }}
@@ -46,6 +55,34 @@ data:
     {{- end }}
     {{- if $connector }}
       {{- $_ := set $config "connector" $connector }}
+    {{- end }}
+
+    {{- if .Values.config }}
+      {{- if .Values.config.monitor }}
+        {{- $monitor := dict }}
+        {{- if .Values.config.monitor.heartbeat }}{{ $_ := set $monitor "heartbeat" .Values.config.monitor.heartbeat }}{{ end }}
+        {{- $_ := set $config "monitor" $monitor }}
+      {{- end }}
+      {{- if .Values.config.metrics }}
+        {{- $metrics := dict }}
+        {{- if .Values.config.metrics.aggregationWindow }}
+          {{- $agg := dict }}
+          {{- if .Values.config.metrics.aggregationWindow.duration }}{{ $_ := set $agg "duration" .Values.config.metrics.aggregationWindow.duration }}{{ end }}
+          {{- if .Values.config.metrics.aggregationWindow.unit }}{{ $_ := set $agg "unit" .Values.config.metrics.aggregationWindow.unit }}{{ end }}
+          {{- $_ := set $metrics "aggregation-window" $agg }}
+        {{- end }}
+        {{- $_ := set $config "metrics" $metrics }}
+      {{- end }}
+      {{- if .Values.config.ui }}
+        {{- $ui := dict }}
+        {{- if .Values.config.ui.maxDateRange }}
+          {{- $maxDate := dict }}
+          {{- if .Values.config.ui.maxDateRange.duration }}{{ $_ := set $maxDate "duration" .Values.config.ui.maxDateRange.duration }}{{ end }}
+          {{- if .Values.config.ui.maxDateRange.unit }}{{ $_ := set $maxDate "unit" .Values.config.ui.maxDateRange.unit }}{{ end }}
+          {{- $_ := set $ui "max-date-range" $maxDate }}
+        {{- end }}
+        {{- $_ := set $config "ui" $ui }}
+      {{- end }}
     {{- end }}
 
     {{- if .Values.secrets }}

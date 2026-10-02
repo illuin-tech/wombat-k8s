@@ -1,56 +1,18 @@
-# Wombat Kubernetes Deployments
+# Wombat on Kubernetes
 
-This repository provides Kubernetes deployment tooling for the `wombat` service:
+This repository provides Kubernetes deployment tooling for the [Wombat Carbon Tracker](https://github.com/illuin-tech/wombat) application:
 
-- **`helm/`**: Helm chart for packaging and installing Wombat on Kubernetes clusters.
-- **`pulumi/`**: Pulumi Component Resource library (`@illuin-public/wombat-pulumi`) for managing Wombat deployments programmatically via TypeScript/Pulumi.
+* `pulumi/`: a Pulumi Component Resource library (`@illuin-public/wombat-pulumi` on NPM) for managing Wombat deployments programmatically via Pulumi (in TypeScript) - _**This is the recommended way to deploy Wombat at the moment, as it is the one we put the most effort on**_
+* `helm/`: a Helm chart for packaging and installing Wombat on Kubernetes clusters, distributed via Docker Hub as an OCI artifact (`oci://registry-1.docker.io/illuin/wombat-chart`)
 
----
-
-## Directory Structure
-
-```
-.
-├── helm/
-│   └── wombat/               # Wombat Helm chart (Chart.yaml, values.yaml, templates/)
-└── pulumi/                   # @illuin-public/wombat-pulumi library
-    ├── components/           # Pulumi component implementations
-    ├── index.ts              # Entry point exports
-    ├── package.json          # Package definition
-    └── tsconfig.json         # TypeScript configuration
-```
-
----
-
-## 1. Helm Chart (`helm/`)
-
-The Helm chart is located in `helm/wombat/` and can be used to install Wombat on any Kubernetes cluster.
-
-### Linting & Testing
-```bash
-helm lint helm/wombat
-```
-
-### Installation
-```bash
-helm install wombat ./helm/wombat -f my-values.yaml
-```
-
----
-
-## 2. Pulumi Component Package (`pulumi/`)
+## Pulumi Package
 
 The Pulumi library in `pulumi/` provides the `@illuin-public/wombat-pulumi` component package.
 
-### Building
-```bash
-cd pulumi
-npm ci
-npm run build
-```
-
 ### Usage
+
 In your Pulumi TypeScript project:
+
 ```bash
 npm install @illuin-public/wombat-pulumi
 ```
@@ -65,4 +27,45 @@ const serviceArgs = config.requireObject<WombatArgs>("service");
 export const wombat = new WombatResource("wombat", serviceArgs);
 ```
 
+### Building
+
+```bash
+cd pulumi
+npm ci
+npm run build
+```
+
 For full details on configuration options (monitoring, secrets, persistence, ingress), see [`pulumi/README.md`](pulumi/README.md).
+
+
+## Helm Chart
+
+The Helm chart is published as an OCI artifact to Docker Hub at `oci://registry-1.docker.io/illuin/wombat-chart`.
+
+### Installation via OCI Registry
+
+You can install the chart directly without cloning the repository:
+
+```bash
+helm install wombat oci://registry-1.docker.io/illuin/wombat-chart --version <version> -f my-values.yaml
+```
+
+To pull and inspect the packaged chart locally:
+
+```bash
+helm pull oci://registry-1.docker.io/illuin/wombat-chart --version <version>
+```
+
+### Local Development & Source Installation
+
+If working from source or developing custom chart modifications:
+
+```bash
+# Lint the chart
+helm lint helm/wombat
+
+# Install from local directory
+helm install wombat ./helm/wombat -f my-values.yaml
+```
+
+For full details on configuration options (monitoring, secrets, persistence, ingress), see [`helm/README.md`](helm/README.md).

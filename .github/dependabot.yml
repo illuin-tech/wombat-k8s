@@ -1,0 +1,15 @@
+# Please see the documentation for all configuration options:
+# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/pulumi"
+    open-pull-requests-limit: 25
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "helm"
+    directory: "/helm"
+    open-pull-requests-limit: 25
+    schedule:
+      interval: "weekly"

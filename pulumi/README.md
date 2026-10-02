@@ -24,15 +24,20 @@ export const wombat = new WombatResource("wombat", serviceArgs);
 
 All service settings live under the `service` config key (or pass them directly as `WombatArgs`).
 
-### Monitoring Configuration
+### Application & Monitoring Configuration
 
-* `config.monitor.heartbeat`: CRON expression controlling how often monitored assets are polled.
-* `monitoredEnvironments.environments`: a map of environment id → `{ id, name, assets }`, where each asset has a `type` (`KUBERNETES_API`, `LLM_STATIC`, `LLM_PROMETHEUS`), an `id`, an `environmentId`, a `name`, optional `resolvers`, and a `profile` configuration:
-  * `KUBERNETES_API`: reads cluster workload via a mounted kubeconfig.
-  * `LLM_STATIC`: static LLM traffic estimation.
-  * `LLM_PROMETHEUS`: live LLM metrics polled from a Prometheus endpoint, supporting optional `username` and `passwordKey`.
+* `config.monitor.heartbeat`: CRON expression controlling how often monitored assets are polled (e.g. `"*/10 * * * * ?"`).
+* `config.metrics.aggregationWindow`: `{ duration: number, unit: "MINUTES" | "HOURS" | "DAYS" }` specifying the time window for metrics aggregation (e.g. `{ duration: 5, unit: "MINUTES" }`).
+* `config.ui.maxDateRange`: `{ duration: number, unit: "DAYS" | "MONTHS" | "YEARS" }` specifying the maximum date range queryable in the dashboard UI (e.g. `{ duration: 1, unit: "YEARS" }`).
 
-Monitoring configurations are compiled into a `/monitored/monitored-environments.yaml` file mounted in the container. Each `KUBERNETES_API` asset's `config-path` is automatically pointed to `/kubeconfigs/<id>.config`.
+### Monitored Environments
+
+* `monitoredEnvironments.environments`: a map of environment id → `{ id, name, assets }`, where each asset has a `type`, `id`, `name`, optional `resolvers`, and a `profile` configuration:
+  * `tech.illuin.wombat-module.kubernetes-api`: reads cluster workload via a mounted kubeconfig. Parameters include `namespace`, optional `context`, `readTimeout`, `heartbeatSkip`, and `profile` (`provider`, `instanceType`, `location`, `lifespan`).
+  * `tech.illuin.wombat-module.llm-static`: static LLM traffic estimation. Parameters include `profile.models` array (`provider`, `model`, `location`, `requestProfile.outputTokenCount`, `requestProfile.requestPerYear`).
+  * `tech.illuin.wombat-module.llm-prometheus`: live LLM metrics polled from a Prometheus endpoint. Parameters include `prometheusUrl`, optional `proxyUrl`, `username`, `passwordKey`, `heartbeatSkip`, and `profile` (`provider`, `model`, `location`, `dynamicProfile.query`).
+
+Monitoring configurations are compiled into a `/monitored/monitored-environments.yaml` file mounted in the container. Each `tech.illuin.wombat-module.kubernetes-api` asset's `config-path` is automatically pointed to `/kubeconfigs/<id>.config`.
 
 ### Kubeconfigs & Secret Management
 
@@ -54,6 +59,14 @@ pulumi config set --secret --path 'service.secrets.WOMBAT_PROMETHEUS_PASSWORD' <
 
 When provided, Pulumi provisions a Kubernetes `Secret` mounted as a directory volume at `/secrets`, and configures `wombat.secret.directory.path: /secrets`. The backend's `DirectorySecretResolver` resolves secrets directly from this directory.
 
+### Extensions
+
+Mount user-provided extension JARs into the container (default mount path `/extensions`):
+
+* `extensions.existingClaimName`: reference an existing PersistentVolumeClaim.
+* `extensions.pvc`: provision a managed PVC with `size` (e.g. `1Gi`), `storageClassName`, and `accessModes` (e.g. `["ReadWriteOnce"]`).
+* `extensions.mountPath`: optional custom mount path inside the container (defaults to `/extensions`).
+
 ### Dependencies & Connectors
 
 Wombat can use either container sidecars or external endpoints for BoaviztAPI and Ecologits:
@@ -71,6 +84,9 @@ These are automatically mapped to `connector.boavizta.uri` and `connector.ecolog
 #### S3 Backup
 * `persistence.backup.enabled` (boolean, default `true` when using `SQLITE_WITH_BACKUP`): enables the periodic SQLite backup service.
 * `persistence.backup.cron`: cron expression for the backup schedule (default `0 0 2 * * ?`, i.e. daily at 2am).
+* `persistence.backup.restoreOnStartup`: boolean, restore latest S3 backup snapshot on container startup (default `true`).
+* `persistence.backup.cleanup.cron`: cron expression for old backup cleanup (e.g. `0 0 3 * * ?`).
+* `persistence.backup.cleanup.retainLast`: number of most recent snapshots to retain in S3 (e.g. `25`).
 * `persistence.backup.s3`: **required when `backup.enabled` is `true`**. Set `endpoint`, `bucket`, `accessKey`, `secretKey`, and optionally `keyPrefix` and `region`.
 
 ```bash

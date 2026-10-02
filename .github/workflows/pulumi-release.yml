@@ -1,0 +1,33 @@
+name: Release and Publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish-npm:
+    name: Publish NPM Pulumi
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+          cache-dependency-path: pulumi/package-lock.json
+      - name: Update package version and build
+        working-directory: pulumi
+        run: |
+          npm version ${{ github.ref_name }} --no-git-tag-version
+          npm ci
+          npm run build
+      - name: Publish to NPM
+        working-directory: pulumi
+        run: npm publish --provenance --access public

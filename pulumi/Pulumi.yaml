@@ -1,0 +1,4 @@
+name: wombat
+description: "Pulumi resource for wombat"
+runtime: nodejs
+config: env

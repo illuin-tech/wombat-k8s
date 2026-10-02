@@ -1,0 +1,94 @@
+# Sample local values for Wombat Helm deployment
+# Equivalent to pulumi/Pulumi.local.yaml.dist
+
+environment: local
+
+image:
+  tag: "0.11.0"
+
+# Sidecar dependencies for emissions calculations
+dependencies:
+  boaviztapi:
+    type: CONTAINER
+    # type: EXTERNAL
+    # endpoint: "https://api.boavizta.org/v1/"
+  ecologits:
+    type: CONTAINER
+    # type: EXTERNAL
+    # endpoint: "https://api.ecologits.ai/"
+
+# Application configuration
+config:
+  monitor:
+    heartbeat: "*/10 * * * * ?"
+  metrics:
+    aggregationWindow:
+      duration: 5
+      unit: MINUTES
+  ui:
+    maxDateRange:
+      duration: 1
+      unit: YEARS
+
+# Generic runtime secrets mounted under /secrets (e.g. for Prometheus basic auth)
+# secrets:
+#   WOMBAT_PROMETHEUS_PASSWORD: CHANGEME
+
+# Dynamic extensions storage
+# extensions:
+#   enabled: true
+#   # Option A: Reference an existing PVC
+#   existingClaim: my-extensions-pvc
+#   # Option B: Provision a managed PVC
+#   storageClassName: standard
+#   size: 1Gi
+#   mountPath: /extensions
+
+# Monitored environments and assets configuration
+monitoredEnvironments:
+  environments:
+    test:
+      name: Test Environment
+      assets:
+        - type: tech.illuin.wombat-module.kubernetes-api
+          id: my-cluster
+          name: My cluster (test)
+          namespace: my-namespace
+          configPath: /path/to/kubeconfig
+          profile:
+            provider: aws
+            instanceType: c5a.4xlarge
+            location: FRA
+            lifespan: 43800 # hours
+        - type: tech.illuin.wombat-module.llm-static
+          id: my-llm
+          name: My LLM (test)
+          profile:
+            models:
+              - provider: mistralai
+                model: mistral-large-latest
+                location: FRA
+                requestProfile:
+                  outputTokenCount: 300
+                  requestPerYear: 9125000 # ~1000 users * 5 calls * 5 inferences * 365
+  kubeconfigs:
+    - id: my-cluster
+      content: CHANGEME
+
+# Persistence configuration
+persistence:
+  type: SQLITE_WITH_BACKUP
+  backup:
+    enabled: true
+    cron: "0 0 2 * * ?"
+    restoreOnStartup: true
+    cleanup:
+      cron: "0 0 3 * * ?"
+      retainLast: 25
+    s3:
+      endpoint: "CHANGEME"
+      bucket: "wombat"
+      region: "CHANGEME"
+      keyPrefix: "test/sqlite/"
+      accessKey: "CHANGEME"
+      secretKey: "CHANGEME"

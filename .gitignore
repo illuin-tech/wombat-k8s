@@ -7,3 +7,5 @@
 /data
 *.local.yaml
 .idea
+.junie
+*._DS_Store

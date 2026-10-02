@@ -1,6 +1,6 @@
 {
   "name": "@illuin-public/wombat-pulumi",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "Pulumi component resource for deploying Wombat to Kubernetes",
   "main": "bin/index.js",
   "types": "bin/index.d.ts",
@@ -16,7 +16,26 @@
     "prepare": "npm run build"
   },
   "author": "Illuin Technology",
+  "contributors": [
+    "Pierre Lecerf <pierre.lecerf@illuin.tech>",
+    "Théo Malka <theo.malka@illuin.tech>"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/illuin-tech/wombat.git"
+  },
+  "homepage": "https://github.com/illuin-tech/wombat-k8s#readme",
+  "bugs": {
+    "url": "https://github.com/illuin-tech/wombat-k8s/issues"
+  },
   "license": "Apache-2.0",
+  "keywords": [
+    "wombat",
+    "sustainability",
+    "pulumi",
+    "kubernetes",
+    "iac"
+  ],
   "dependencies": {
     "@pulumi/kubernetes": "^4.33.0",
     "@pulumi/pulumi": "*",
