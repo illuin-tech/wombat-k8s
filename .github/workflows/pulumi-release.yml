@@ -30,4 +30,11 @@ jobs:
           npm run build
       - name: Publish to NPM
         working-directory: pulumi
-        run: npm publish --provenance --access public
+        env:
+          IS_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          EXTRA_ARGS=""
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            EXTRA_ARGS="--tag rc"
+          fi
+          npm publish --provenance --access public $EXTRA_ARGS

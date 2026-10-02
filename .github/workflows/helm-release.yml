@@ -23,7 +23,7 @@ jobs:
           helm package helm/wombat --version ${{ github.ref_name }} --app-version ${{ github.ref_name }}
       - name: Push Helm Chart OCI
         run: |
-          helm push wombat-${{ github.ref_name }}.tgz oci://registry-1.docker.io/illuin
+          helm push wombat-chart-${{ github.ref_name }}.tgz oci://registry-1.docker.io/illuin
       - name: Update Docker Hub Description
         uses: peter-evans/dockerhub-description@v5
         with:
