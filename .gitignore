@@ -8,4 +8,4 @@
 *.local.yaml
 .idea
 .junie
-*._DS_Store
+*.DS_Store

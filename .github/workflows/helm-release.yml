@@ -29,6 +29,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: illuin/wombat-helm
+          repository: illuin/wombat-chart
           short-description: ${{ github.event.repository.description }}
           readme-filepath: ./helm/doc/dockerhub/README.md
