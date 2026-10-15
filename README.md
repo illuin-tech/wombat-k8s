@@ -73,3 +73,9 @@ helm install wombat ./helm/wombat -f my-values.yaml
 ```
 
 For full details on configuration options (monitoring, secrets, persistence, ingress), see [`helm/README.md`](helm/README.md).
+
+## License
+
+This project is licensed under the MIT license ; see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2026 Illuin Technology.
