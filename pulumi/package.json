@@ -28,7 +28,7 @@
   "bugs": {
     "url": "https://github.com/illuin-tech/wombat-k8s/issues"
   },
-  "license": "Apache-2.0",
+  "license": "MIT",
   "keywords": [
     "wombat",
     "sustainability",
