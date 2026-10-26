@@ -83,10 +83,10 @@ The following table lists the configurable parameters of the Wombat chart and th
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `persistence.type` | Persistence mode: `SQLITE_TRANSIENT` (Deployment with in-memory DB) or `SQLITE_WITH_BACKUP` (StatefulSet with S3 backup) | `SQLITE_TRANSIENT` |
+| `persistence.type` | Persistence mode: `SQLITE_TRANSIENT` (Deployment with in-memory DB) or `SQLITE_WITH_BACKUP` (StatefulSet with DB on a PVC, optionally backed up to S3) | `SQLITE_TRANSIENT` |
 | `persistence.storageClassName` | Storage class name for persistent volume claim | `""` |
 | `persistence.size` | PVC disk storage request size | `10Gi` |
-| `persistence.backup.enabled` | Enable scheduled S3 database backups | `false` |
+| `persistence.backup.enabled` | Enable scheduled S3 database backups (`SQLITE_WITH_BACKUP` only; when `false` the DB is kept on the PVC without backups) | `false` |
 | `persistence.backup.cron` | Cron schedule for taking database backups | `0 0 2 * * ?` |
 | `persistence.backup.restoreOnStartup` | Restore the latest snapshot from S3 upon container start | `true` |
 | `persistence.backup.cleanup.cron` | Cron schedule for cleaning old S3 snapshots | `0 0 3 * * ?` |
