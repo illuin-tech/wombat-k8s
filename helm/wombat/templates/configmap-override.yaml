@@ -12,6 +12,10 @@ data:
     {{- $jdbc := dict }}
     {{- if eq .Values.persistence.type "SQLITE_TRANSIENT" }}
       {{- $_ := set $jdbc "url" "jdbc:sqlite::memory:" }}
+      {{- $_ := set $config "backup" (dict "enabled" false) }}
+    {{- else if and (eq .Values.persistence.type "SQLITE_WITH_BACKUP") (not .Values.persistence.backup.enabled) }}
+      {{- $_ := set $jdbc "url" "jdbc:sqlite:/var/tmp/wombat.db" }}
+      {{- $_ := set $config "backup" (dict "enabled" false) }}
     {{- else if eq .Values.persistence.type "SQLITE_WITH_BACKUP" }}
       {{- $_ := set $jdbc "url" "jdbc:sqlite:/var/tmp/wombat.db" }}
       {{- $backup := dict "enabled" true }}
@@ -33,6 +37,11 @@ data:
         {{- if .Values.persistence.backup.s3.bucket }}{{ $_ := set $s3 "bucket" .Values.persistence.backup.s3.bucket }}{{ end }}
         {{- if .Values.persistence.backup.s3.region }}{{ $_ := set $s3 "region" .Values.persistence.backup.s3.region }}{{ end }}
         {{- if .Values.persistence.backup.s3.keyPrefix }}{{ $_ := set $s3 "key-prefix" .Values.persistence.backup.s3.keyPrefix }}{{ end }}
+        {{- /* Credentials come from the WOMBAT_BACKUP_S3_* env vars set on the StatefulSet */}}
+        {{- if or .Values.persistence.backup.s3.existingSecret .Values.persistence.backup.s3.accessKey }}
+          {{- $_ := set $s3 "access-key" "${WOMBAT_BACKUP_S3_ACCESS_KEY}" }}
+          {{- $_ := set $s3 "secret-key" "${WOMBAT_BACKUP_S3_SECRET_KEY}" }}
+        {{- end }}
         {{- $_ := set $backup "s3" $s3 }}
       {{- end }}
       {{- $_ := set $config "backup" $backup }}
@@ -93,7 +102,6 @@ data:
       {{- $_ := set $config "module" (dict "extension" (dict "path" (.Values.extensions.mountPath | default "/extensions"))) }}
     {{- end }}
 
-    {{- $_ := set $config "tech" (dict "illuin" (dict "wombat" (dict "monitored-environments" (dict "path" "/monitored/monitored-environments.yaml")))) }}
 
     {{- $merged := mergeOverwrite $config .Values.configOverrides }}
     {{- toYaml $merged | nindent 4 }}

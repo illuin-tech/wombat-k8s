@@ -43,8 +43,12 @@ spec:
               containerPort: 8080
               protocol: TCP
           env:
-            - name: JAVA_OPTS_APPEND
-              value: "-Dquarkus.config.locations=/conf/application.yaml -Xms{{ .Values.jvmOptions.xms }} -Xmx{{ .Values.jvmOptions.xmx }}"
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xms{{ .Values.jvmOptions.xms }} -Xmx{{ .Values.jvmOptions.xmx }}"
+            - name: QUARKUS_CONFIG_LOCATIONS
+              value: /conf/application.yaml
+            - name: MONITOR_ENVIRONMENTS_FILE
+              value: /monitored/monitored-environments.yaml
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
