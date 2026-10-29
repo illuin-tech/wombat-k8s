@@ -3,7 +3,7 @@ config:
     namespace: my-namespace
     environment: local
     container:
-      imageVersion: 0.11.0
+      imageVersion: 0.14.0
       # optional pull secret, to be removed once images move to a public registry:
       #   pulumi config set --secret --path 'service.container.pullSecret.serviceAccount' <gcr-service-account-json>
       #pullSecret:
@@ -21,7 +21,7 @@ config:
         #endpoint: "https://api.ecologits.ai/"
     config:
       monitor:
-        heartbeat: "*/10 * * * * ?"
+        heartbeat: "10s"
       metrics:
         aggregationWindow: { duration: 5, unit: MINUTES }
       ui:
