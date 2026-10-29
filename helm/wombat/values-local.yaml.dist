@@ -4,7 +4,7 @@
 environment: local
 
 image:
-  tag: "0.11.0"
+  tag: "0.14.0"
 
 # Sidecar dependencies for emissions calculations
 dependencies:
@@ -20,7 +20,7 @@ dependencies:
 # Application configuration
 config:
   monitor:
-    heartbeat: "*/10 * * * * ?"
+    heartbeat: "10s"
   metrics:
     aggregationWindow:
       duration: 5
