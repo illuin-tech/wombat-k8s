@@ -60,6 +60,7 @@ export class WombatResource extends pulumi.ComponentResource {
                 spec: {
                     ingressClassName: args.ingress.className,
                     rules: [{
+                        host: args.ingress.host,
                         http: {
                             paths: [{
                                 path: args.ingress.path,
