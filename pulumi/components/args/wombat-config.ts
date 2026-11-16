@@ -6,7 +6,7 @@ import {PersistenceMode} from "./persistence-args";
 import {WorkloadType, WorkloadConfig} from "./k8s-config";
 
 export function compileNativeConfig(args: WombatArgs): AppPackage {
-    let config: AppConfig = { wombat: args.config };
+    const config: AppConfig = { wombat: { ...args.config } };
 
     const compilers: AppConfigCompiler[] = [
         new PersistenceConfigCompiler(),
@@ -30,6 +30,7 @@ export function compileNativeConfig(args: WombatArgs): AppPackage {
 export function compileWorkloadConfig(args: WombatArgs): WorkloadConfig {
     switch (args.persistence.type) {
         case PersistenceMode.SQLITE_TRANSIENT:
+        case PersistenceMode.POSTGRESQL:
             return {
                 workloadType: WorkloadType.DEPLOYMENT,
                 podConfig: {

@@ -9,7 +9,7 @@ export interface JVMOptions {
 export interface Conf {
     id: string;
     filename: string;
-    data: string;
+    data: pulumi.Input<string>;
 }
 
 export class ConfGroup {
@@ -31,7 +31,7 @@ export class ConfGroup {
     }
 
     asConfigMapArgs(namespace: pulumi.Input<string>, labels: {[key: string]: string}): k8s.core.v1.ConfigMapArgs {
-        let data: {[key: string]: string} = this.confs.reduce((acc: {[key: string]: string}, conf: Conf) => {
+        let data: {[key: string]: pulumi.Input<string>} = this.confs.reduce((acc: {[key: string]: pulumi.Input<string>}, conf: Conf) => {
             acc[conf.filename] = conf.data;
             return acc;
         }, {});
@@ -46,7 +46,7 @@ export class ConfGroup {
     }
 
     asSecretArgs(namespace: pulumi.Input<string>, labels: {[key: string]: string}): k8s.core.v1.SecretArgs {
-        let data: {[key: string]: string} = this.confs.reduce((acc: {[key: string]: string}, conf: Conf) => {
+        let data: {[key: string]: pulumi.Input<string>} = this.confs.reduce((acc: {[key: string]: pulumi.Input<string>}, conf: Conf) => {
             acc[conf.filename] = conf.data;
             return acc;
         }, {});

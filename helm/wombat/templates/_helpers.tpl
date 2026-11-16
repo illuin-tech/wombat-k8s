@@ -60,3 +60,30 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{- define "wombat.persistenceEnv" -}}
+{{- $manifest := include (print .Template.BasePath "/configmap-override.yaml") . | fromYaml -}}
+{{- $config := index $manifest.data "application.yaml" | fromYaml -}}
+{{- $backend := $config.persistence.backend }}
+- name: PERSISTENCE_BACKEND_MODE
+  value: {{ $backend.mode | quote }}
+{{- if eq $backend.mode "sqlite" }}
+- name: PERSISTENCE_BACKEND_SQLITE_JDBC_URL
+  value: {{ index $backend.sqlite "jdbc-url" | quote }}
+{{- else }}
+{{- $postgres := $backend.postgresql | default dict }}
+{{- range $key, $env := dict "jdbc-url" "PERSISTENCE_BACKEND_POSTGRESQL_JDBC_URL" "username" "PERSISTENCE_BACKEND_POSTGRESQL_USERNAME" "password" "PERSISTENCE_BACKEND_POSTGRESQL_PASSWORD" }}
+{{- if hasKey $postgres $key }}
+- name: {{ $env }}
+  {{- if and (eq $key "password") (eq (index $postgres $key) "${POSTGRESQL_PASSWORD}") $.Values.persistence.postgresql.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.persistence.postgresql.existingSecret | quote }}
+      key: {{ $.Values.persistence.postgresql.passwordKey | quote }}
+  {{- else }}
+  value: {{ index $postgres $key | quote }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

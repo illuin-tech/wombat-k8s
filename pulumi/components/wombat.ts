@@ -13,7 +13,11 @@ import {createDependencyContainers} from "./args/dependencies-config";
 
 export class WombatResource extends pulumi.ComponentResource {
     constructor(name: string, args: WombatArgs, opts?: pulumi.ComponentResourceOptions) {
-        super(`illuin:wombat:service-${args.environment}`, name, args, opts);
+        super(`illuin:wombat:service-${args.environment}`, name, {
+            ...args,
+            config: pulumi.secret(args.config),
+            persistence: pulumi.secret(args.persistence),
+        }, opts);
 
         const selectorLabels: {[key: string]: string} = {
             "app.kubernetes.io/name": "wombat",
@@ -124,7 +128,7 @@ export class WombatResource extends pulumi.ComponentResource {
         }
 
         const confOverride: ConfGroup = createOverrideConf(nativeConfig);
-        const confOverrideConfigMap = new k8s.core.v1.ConfigMap(`wombat-service-config-${args.environment}`, confOverride.asConfigMapArgs(args.namespace, labels));
+        const confOverrideSecret = new k8s.core.v1.Secret(`wombat-service-config-${args.environment}`, confOverride.asSecretArgs(args.namespace, labels));
 
         const { kubeconfigConf, monitoredEnvConf } = createMonitoredEnvironmentsConf(args);
         const kubeconfigSecret = new k8s.core.v1.Secret(`wombat-service-kubeconfigs-${args.environment}`, kubeconfigConf.asSecretArgs(args.namespace, labels));
@@ -186,7 +190,7 @@ export class WombatResource extends pulumi.ComponentResource {
         }
 
         const volumes: k8s.types.input.core.v1.Volume[] = [
-            { name: confOverride.volumeName, configMap: { name: confOverrideConfigMap.metadata.name } },
+            { name: confOverride.volumeName, secret: { secretName: confOverrideSecret.metadata.name } },
             { name: kubeconfigConf.volumeName, secret: { secretName: kubeconfigSecret.metadata.name } },
             { name: monitoredEnvConf.volumeName, configMap: { name: monitoredEnvConfigMap.metadata.name } },
         ];
@@ -246,6 +250,9 @@ export class WombatResource extends pulumi.ComponentResource {
             metadata: {
                 namespace: args.namespace,
                 labels: labels,
+                annotations: {
+                    "wombat.illuin.tech/config-resource-version": confOverrideSecret.metadata.resourceVersion,
+                },
             },
             spec: {
                 imagePullSecrets: pullSecret
