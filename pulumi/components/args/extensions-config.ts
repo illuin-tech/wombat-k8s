@@ -1,16 +1,20 @@
-import {WombatNativeConfig} from "./wombat-args";
-import {ExtensionsConfig} from "./extensions-args";
+import {AppConfig, AppConfigCompiler, AppPackage, WombatArgs} from "./wombat-args";
 
 /**
  * Tweaks the Quarkus application configuration based on the ExtensionsConfig.
  */
-export function applyExtensionsConfig(config: WombatNativeConfig, extensions?: ExtensionsConfig): WombatNativeConfig {
-    if (extensions && (extensions.existingClaimName || extensions.pvc)) {
-        config.module = config.module || {};
-        config.module.extension = {
-            ...(config.module.extension || {}),
-            path: extensions.mountPath || "/extensions",
+export class ExtensionsConfigCompiler implements AppConfigCompiler {
+    compile(config: AppConfig, args: WombatArgs): AppPackage {
+        if (!args.extensions?.existingClaimName && !args.extensions?.pvc) {
+            return { config: config };
+        }
+
+        config.wombat.module = config.wombat.module || {};
+        config.wombat.module.extension = {
+            ...(config.wombat.module.extension || {}),
+            path: args.extensions.mountPath || "/extensions",
         };
+
+        return { config: config };
     }
-    return config;
 }

@@ -1,16 +1,15 @@
-import {WombatNativeConfig} from "./wombat-args";
+import {AppConfig} from "./wombat-args";
 import {ConfGroup, kebabize} from "../utils/tools";
 import * as yaml from "yaml";
 
-export function createOverrideConf(args: WombatNativeConfig): ConfGroup {
-    let overridden: WombatNativeConfig = { ...args };
+export function createOverrideConf(args: AppConfig): ConfGroup {
     return new ConfGroup(
-        "/conf",
+        "/deployments/config",
         "application-conf",
         [{
             id: "application-conf",
-            filename: "application-dynamic.yaml",
-            data: yaml.stringify(kebabize(overridden)),
+            filename: "application.yaml",
+            data: yaml.stringify(kebabize(args)),
         }]
     );
 }

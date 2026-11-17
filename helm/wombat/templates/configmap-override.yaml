@@ -7,17 +7,17 @@ metadata:
 data:
   application.yaml: |
     {{- $config := dict }}
-    {{- $quarkus := dict }}
-    {{- $datasource := dict }}
-    {{- $jdbc := dict }}
+    {{- $wombat := dict }}
+    {{- $persistence := dict }}
+    {{- $sqlite := dict }}
     {{- if eq .Values.persistence.type "SQLITE_TRANSIENT" }}
-      {{- $_ := set $jdbc "url" "jdbc:sqlite::memory:" }}
-      {{- $_ := set $config "backup" (dict "enabled" false) }}
+      {{- $_ := set $sqlite "jdbc-url" "jdbc:sqlite::memory:" }}
+      {{- $_ := set $sqlite "backup" (dict "enabled" false) }}
     {{- else if and (eq .Values.persistence.type "SQLITE_WITH_BACKUP") (not .Values.persistence.backup.enabled) }}
-      {{- $_ := set $jdbc "url" "jdbc:sqlite:/var/tmp/wombat.db" }}
-      {{- $_ := set $config "backup" (dict "enabled" false) }}
+      {{- $_ := set $sqlite "jdbc-url" "jdbc:sqlite:/var/tmp/wombat.db" }}
+      {{- $_ := set $sqlite "backup" (dict "enabled" false) }}
     {{- else if eq .Values.persistence.type "SQLITE_WITH_BACKUP" }}
-      {{- $_ := set $jdbc "url" "jdbc:sqlite:/var/tmp/wombat.db" }}
+      {{- $_ := set $sqlite "jdbc-url" "jdbc:sqlite:/var/tmp/wombat.db" }}
       {{- $backup := dict "enabled" true }}
       {{- if .Values.persistence.backup.cron }}
         {{- $_ := set $backup "cron" .Values.persistence.backup.cron }}
@@ -44,11 +44,10 @@ data:
         {{- end }}
         {{- $_ := set $backup "s3" $s3 }}
       {{- end }}
-      {{- $_ := set $config "backup" $backup }}
+      {{- $_ := set $sqlite "backup" $backup }}
     {{- end }}
-    {{- $_ := set $datasource "jdbc" $jdbc }}
-    {{- $_ := set $quarkus "datasource" $datasource }}
-    {{- $_ := set $config "quarkus" $quarkus }}
+    {{- $_ := set $persistence "backend" (dict "sqlite" $sqlite) }}
+    {{- $_ := set $config "persistence" $persistence }}
 
     {{- $connector := dict }}
     {{- if eq .Values.dependencies.boaviztapi.type "CONTAINER" }}
@@ -95,11 +94,15 @@ data:
     {{- end }}
 
     {{- if .Values.secrets }}
-      {{- $_ := set $config "wombat" (dict "secret" (dict "directory" (dict "path" "/secrets"))) }}
+      {{- $_ := set $wombat "secret" (dict "directory" (dict "path" "/secrets")) }}
+      {{- $_ := set $config "wombat" $wombat }}
     {{- end }}
 
     {{- if .Values.extensions.enabled }}
-      {{- $_ := set $config "module" (dict "extension" (dict "path" (.Values.extensions.mountPath | default "/extensions"))) }}
+      {{- $module := dict }}
+      {{- $_ := set $module "extension" (dict "path" (.Values.extensions.mountPath | default "/extensions")) }}
+      {{- $_ := set $wombat "module" $module }}
+      {{- $_ := set $config "wombat" $wombat }}
     {{- end }}
 
 
