@@ -46,9 +46,8 @@ data:
       {{- end }}
       {{- $_ := set $sqlite "backup" $backup }}
     {{- end }}
-    {{- $_ := set $persistence "sqlite" $sqlite }}
-    {{- $_ := set $wombat "persistence" $persistence }}
-    {{- $_ := set $config "wombat" $wombat }}
+    {{- $_ := set $persistence "backend" (dict "sqlite" $sqlite) }}
+    {{- $_ := set $config "persistence" $persistence }}
 
     {{- $connector := dict }}
     {{- if eq .Values.dependencies.boaviztapi.type "CONTAINER" }}

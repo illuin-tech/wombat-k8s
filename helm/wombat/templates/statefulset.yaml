@@ -47,7 +47,7 @@ spec:
             - name: JAVA_TOOL_OPTIONS
               value: "-Xms{{ .Values.jvmOptions.xms }} -Xmx{{ .Values.jvmOptions.xmx }}"
             - name: QUARKUS_CONFIG_LOCATIONS
-              value: /conf/application.yaml
+              value: /deployments/config/application.yaml
             - name: MONITOR_ENVIRONMENTS_FILE
               value: /monitored/monitored-environments.yaml
             {{- if and .Values.persistence.backup.enabled (or .Values.persistence.backup.s3.existingSecret .Values.persistence.backup.s3.accessKey) }}
@@ -68,7 +68,7 @@ spec:
             - name: data
               mountPath: /var/tmp
             - name: conf-override
-              mountPath: /conf
+              mountPath: /deployments/config
             - name: conf-monitored
               mountPath: /monitored
             {{- if .Values.monitoredEnvironments.kubeconfigs }}

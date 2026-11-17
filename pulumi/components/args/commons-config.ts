@@ -4,11 +4,11 @@ import * as yaml from "yaml";
 
 export function createOverrideConf(args: AppConfig): ConfGroup {
     return new ConfGroup(
-        "/conf",
+        "/deployments/config",
         "application-conf",
         [{
             id: "application-conf",
-            filename: "application-dynamic.yaml",
+            filename: "application.yaml",
             data: yaml.stringify(kebabize(args)),
         }]
     );

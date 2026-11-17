@@ -7,22 +7,24 @@ import {PersistenceMode} from "./persistence-args";
 export class PersistenceConfigCompiler implements AppConfigCompiler
 {
     compile(config: AppConfig, args: WombatArgs): AppPackage {
+        config.persistence = config.persistence || {};
+        config.persistence.backend = config.persistence.backend || {};
         switch (args.persistence.type) {
             case PersistenceMode.SQLITE_TRANSIENT:
                 // We use an in-memory SQLite database for transient setups
-                config.wombat.persistence.sqlite = config.wombat.persistence.sqlite || {};
-                config.wombat.persistence.sqlite.jdbcUrl = "jdbc:sqlite::memory:";
-                config.wombat.persistence.sqlite.backup = { enabled: false };
+                config.persistence.backend.sqlite = config.persistence.backend.sqlite || {};
+                config.persistence.backend.sqlite.jdbcUrl = "jdbc:sqlite::memory:";
+                config.persistence.backend.sqlite.backup = { enabled: false };
                 break;
 
             case PersistenceMode.SQLITE_WITH_BACKUP:
                 // We use a temporary file that is periodically backed up in on an S3 bucket
-                config.wombat.persistence.sqlite = config.wombat.persistence.sqlite || {};
-                config.wombat.persistence.sqlite.jdbcUrl = "jdbc:sqlite:/var/tmp/wombat.db";
-                config.wombat.persistence.sqlite.backup = args.persistence.backup;
-                config.wombat.persistence.sqlite.backup.enabled = true;
-                if (config.wombat.persistence.sqlite.backup.cleanup)
-                    config.wombat.persistence.sqlite.backup.cleanup.enabled = true;
+                config.persistence.backend.sqlite = config.persistence.backend.sqlite || {};
+                config.persistence.backend.sqlite.jdbcUrl = "jdbc:sqlite:/var/tmp/wombat.db";
+                config.persistence.backend.sqlite.backup = args.persistence.backup;
+                config.persistence.backend.sqlite.backup.enabled = true;
+                if (config.persistence.backend.sqlite.backup.cleanup)
+                    config.persistence.backend.sqlite.backup.cleanup.enabled = true;
                 break;
         }
 
