@@ -1,4 +1,4 @@
-{{- if ne .Values.persistence.type "SQLITE_TRANSIENT" -}}
+{{- if eq .Values.persistence.type "SQLITE_WITH_BACKUP" -}}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:

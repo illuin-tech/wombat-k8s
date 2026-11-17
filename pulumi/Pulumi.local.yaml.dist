@@ -3,7 +3,7 @@ config:
     namespace: my-namespace
     environment: local
     container:
-      imageVersion: 0.14.0
+      imageVersion: 0.20.0
       # optional pull secret, to be removed once images move to a public registry:
       #   pulumi config set --secret --path 'service.container.pullSecret.serviceAccount' <gcr-service-account-json>
       #pullSecret:
@@ -22,10 +22,12 @@ config:
     config:
       monitor:
         heartbeat: "10s"
-      metrics:
-        aggregationWindow: { duration: 5, unit: MINUTES }
-      ui:
-        maxDateRange: { duration: 1, unit: YEARS }
+    compaction:
+      cron: "0 1 * * * ?"
+      window: "1h"
+      delay: "1m"
+    ui:
+      maxDateRange: { duration: 1, unit: YEARS }
     #secrets:
     #  # optional generic runtime secrets mounted into /secrets (e.g. for Prometheus basic auth):
     #  #   pulumi config set --secret --path 'service.secrets.WOMBAT_PROMETHEUS_PASSWORD' <value>

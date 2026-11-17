@@ -1,6 +1,6 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as k8s from "@pulumi/kubernetes";
-import {WombatArgs, WombatNativeConfig} from "./args/wombat-args";
+import {WombatArgs, AppConfig, AppPackage} from "./args/wombat-args";
 import {ConfGroup, createJVMString} from "./utils/tools";
 import {createOverrideConf} from "./args/commons-config";
 import {createMonitoredEnvironmentsConf} from "./args/monitored-environments-config";
@@ -101,7 +101,8 @@ export class WombatResource extends pulumi.ComponentResource {
             )
             : undefined;
 
-        const nativeConfig: WombatNativeConfig = compileNativeConfig(args);
+        const appPackage: AppPackage = compileNativeConfig(args);
+        const nativeConfig: AppConfig = appPackage.config;
 
         let secretsSecret: k8s.core.v1.Secret | undefined = undefined;
         const secretsVolumeName = "wombat-service-secrets";
@@ -207,18 +208,21 @@ export class WombatResource extends pulumi.ComponentResource {
             });
         }
 
+        const envVars: pulumi.Input<pulumi.Input<inputs.core.v1.EnvVar>[]> = [
+            { name: "JAVA_TOOL_OPTIONS", value: createJVMString(args.jvmOptions ? args.jvmOptions : {}) },
+            { name: "QUARKUS_CONFIG_LOCATIONS", value: confOverride.asFileList().join(',') },
+            { name: "MONITOR_ENVIRONMENTS_FILE", value: monitoredEnvConf.asFileList().join(',') },
+            ...(appPackage.envVariables ? appPackage.envVariables : []),
+        ];
+
         const containers: k8s.types.input.core.v1.Container[] = [
             {
                 name: "wombat",
-                image: "illuin/wombat:" + args.container.imageVersion,
+                image: pulumi.interpolate`illuin/wombat:${args.container.imageVersion}`,
                 imagePullPolicy: "Always",
                 ports: [{ containerPort: 8080, name: "http" }],
                 resources: args.resources,
-                env: [
-                    { name: "JAVA_TOOL_OPTIONS", value: createJVMString(args.jvmOptions ? args.jvmOptions : {}) },
-                    { name: "QUARKUS_CONFIG_LOCATIONS", value: confOverride.asFileList().join(',') },
-                    { name: "MONITOR_ENVIRONMENTS_FILE", value: monitoredEnvConf.asFileList().join(',') },
-                ],
+                env: envVars,
                 volumeMounts: volumeMounts,
                 startupProbe: {
                     httpGet: { port: "http", path: "/q/health/started" }

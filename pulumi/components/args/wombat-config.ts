@@ -1,17 +1,28 @@
-import {WombatArgs, WombatNativeConfig} from "./wombat-args";
-import {applyPersistenceConfig} from "./persistence-config";
-import {applyDependenciesConfig} from "./dependencies-config";
-import {applyExtensionsConfig} from "./extensions-config";
+import {AppConfig, AppConfigCompiler, AppPackage, WombatArgs} from "./wombat-args";
+import {PersistenceConfigCompiler} from "./persistence-config";
+import {DependenciesConfigCompiler} from "./dependencies-config";
+import {ExtensionsConfigCompiler} from "./extensions-config";
 import {PersistenceMode} from "./persistence-args";
 import {WorkloadType, WorkloadConfig} from "./k8s-config";
 
-export function compileNativeConfig(args: WombatArgs): WombatNativeConfig {
-    let compiled: WombatNativeConfig = { ...args.config };
+export function compileNativeConfig(args: WombatArgs): AppPackage {
+    let config: AppConfig = { wombat: args.config };
+
+    const compilers: AppConfigCompiler[] = [
+        new PersistenceConfigCompiler(),
+        new DependenciesConfigCompiler(),
+        new ExtensionsConfigCompiler(),
+    ]
 
     /* Apply dynamic mutations to the quarkus configuration */
-    compiled = applyPersistenceConfig(compiled, args.persistence);
-    compiled = applyDependenciesConfig(compiled, args.dependencies);
-    compiled = applyExtensionsConfig(compiled, args.extensions);
+    const compiled: AppPackage = { config: config, envVariables: []};
+    for (const compiler of compilers) {
+        const pass = compiler.compile(compiled.config, args);
+        compiled.config = pass.config;
+        if (pass.envVariables) {
+            compiled.envVariables?.push(...pass.envVariables);
+        }
+    }
 
     return compiled;
 }

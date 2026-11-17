@@ -1,5 +1,5 @@
 import * as k8s from "@pulumi/kubernetes";
-import {WombatNativeConfig} from "./wombat-args";
+import {AppConfig, AppConfigCompiler, AppPackage, WombatArgs} from "./wombat-args";
 import {ContainerDependency, DependencyMode, ExternalDependency, WombatDependencyConfig} from "./dependencies-args";
 
 const BOAVIZTAPI_PORT: number = 5001;
@@ -8,30 +8,32 @@ const ECOLOGITS_PORT: number = 5002;
 /**
  * Tweaks the Quarkus application configuration based on the WombatDependencyConfig.
  */
-export function applyDependenciesConfig(config: WombatNativeConfig, depConfig: WombatDependencyConfig): WombatNativeConfig {
-    config.connector = config.connector || {};
+export class DependenciesConfigCompiler implements AppConfigCompiler {
+    compile(config: AppConfig, args: WombatArgs): AppPackage {
+        config.wombat.connector = config.wombat.connector || {};
 
-    config.connector.boavizta = config.connector.boavizta || {};
-    switch (depConfig.boaviztapi.type) {
-        case DependencyMode.EXTERNAL:
-            config.connector.boavizta.uri = (depConfig.boaviztapi as ExternalDependency).endpoint;
-            break;
-        case DependencyMode.CONTAINER:
-            config.connector.boavizta.uri = `http://localhost:${BOAVIZTAPI_PORT}/v1/`;
-            break;
+        config.wombat.connector.boavizta = config.wombat.connector.boavizta || {};
+        switch (args.dependencies.boaviztapi.type) {
+            case DependencyMode.EXTERNAL:
+                config.wombat.connector.boavizta.uri = (args.dependencies.boaviztapi as ExternalDependency).endpoint;
+                break;
+            case DependencyMode.CONTAINER:
+                config.wombat.connector.boavizta.uri = `http://localhost:${BOAVIZTAPI_PORT}/v1/`;
+                break;
+        }
+
+        config.wombat.connector.ecologits = config.wombat.connector.ecologits || {};
+        switch (args.dependencies.ecologits.type) {
+            case DependencyMode.EXTERNAL:
+                config.wombat.connector.ecologits.uri = (args.dependencies.ecologits as ExternalDependency).endpoint;
+                break;
+            case DependencyMode.CONTAINER:
+                config.wombat.connector.ecologits.uri = `http://localhost:${ECOLOGITS_PORT}/`;
+                break;
+        }
+
+        return { config: config };
     }
-
-    config.connector.ecologits = config.connector.ecologits || {};
-    switch (depConfig.ecologits.type) {
-        case DependencyMode.EXTERNAL:
-            config.connector.ecologits.uri = (depConfig.ecologits as ExternalDependency).endpoint;
-            break;
-        case DependencyMode.CONTAINER:
-            config.connector.ecologits.uri = `http://localhost:${ECOLOGITS_PORT}/`;
-            break;
-    }
-
-    return config;
 }
 
 export function createDependencyContainers(depConfig: WombatDependencyConfig): k8s.types.input.core.v1.Container[] {

@@ -5,31 +5,31 @@ import {PullSecretConfig} from "../utils/image-pull-secrets";
 import {Duration} from "./commons-args";
 import {MonitoredEnvironment, KubeconfigEntry} from "./monitored-environments-args";
 import {IngressArgs} from "./k8s-args";
-import {PersistenceProfile} from "./persistence-args";
+import {CompactionConfig, PersistenceProfile} from "./persistence-args";
 import {WombatDependencyConfig} from "./dependencies-args";
 import {ExtensionsConfig} from "./extensions-args";
+import * as inputs from "@pulumi/kubernetes/types/input";
+
+export interface UiConfig {
+    maxDateRange?: Duration;
+}
 
 export interface WombatConfig {
-    monitor?: {
-        heartbeat?: pulumi.Input<string>;
-        environmentsFile?: pulumi.Input<string>;
-    };
-    ui?: {
-        maxDateRange?: Duration;
-    };
-    connector?: {
-        boavizta?: {
-            uri?: pulumi.Input<string>;
-        };
-        ecologits?: {
-            uri?: pulumi.Input<string>;
-        };
-    };
     [key: string]: any;
 }
 
-export interface WombatNativeConfig extends WombatConfig {
-    [key: string]: any;
+export interface AppConfig {
+    wombat: WombatConfig;
+    persistence?: { [key: string]: any; }
+}
+
+export interface AppConfigCompiler {
+    compile(config: AppConfig, args: WombatArgs): AppPackage;
+}
+
+export interface AppPackage {
+    config: AppConfig,
+    envVariables?: inputs.core.v1.EnvVar[];
 }
 
 export interface WombatArgs {
@@ -46,6 +46,8 @@ export interface WombatArgs {
         kubeconfigs: KubeconfigEntry[];
     };
     persistence: PersistenceProfile;
+    compaction: CompactionConfig;
+    ui: UiConfig;
     dependencies: WombatDependencyConfig;
     extensions?: ExtensionsConfig;
     container: {
