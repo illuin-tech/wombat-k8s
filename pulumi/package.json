@@ -37,7 +37,7 @@
     "iac"
   ],
   "dependencies": {
-    "@pulumi/kubernetes": "^4.33.0",
+    "@pulumi/kubernetes": "^4.8.1",
     "@pulumi/pulumi": "*",
     "apache-md5": "^1.1.8",
     "yaml": "^2.7.0"
