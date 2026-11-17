@@ -211,7 +211,7 @@ export class WombatResource extends pulumi.ComponentResource {
         const envVars: pulumi.Input<pulumi.Input<inputs.core.v1.EnvVar>[]> = [
             { name: "JAVA_TOOL_OPTIONS", value: createJVMString(args.jvmOptions ? args.jvmOptions : {}) },
             { name: "QUARKUS_CONFIG_LOCATIONS", value: confOverride.asFileList().join(',') },
-            { name: "MONITOR_ENVIRONMENTS_FILE", value: monitoredEnvConf.asFileList().join(',') },
+            { name: "WOMBAT_MONITOR_ENVIRONMENTS_FILE", value: monitoredEnvConf.asFileList().join(',') },
             ...(appPackage.envVariables ? appPackage.envVariables : []),
         ];
 
