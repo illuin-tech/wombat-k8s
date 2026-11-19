@@ -83,7 +83,9 @@ The following table lists the configurable parameters of the Wombat chart and th
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `persistence.type` | Persistence mode: `SQLITE_TRANSIENT` (Deployment with in-memory DB) or `SQLITE_WITH_BACKUP` (StatefulSet with DB on a PVC, optionally backed up to S3) | `SQLITE_TRANSIENT` |
+| `persistence.type` | Persistence mode: `SQLITE_TRANSIENT` (Deployment with in-memory DB), `SQLITE_WITH_BACKUP` (StatefulSet with DB on a PVC, optionally backed up to S3), or `POSTGRESQL` (Deployment using an existing PostgreSQL server) | `SQLITE_TRANSIENT` |
+| `persistence.postgresql.existingSecret` | Existing Secret containing the PostgreSQL password | `""` |
+| `persistence.postgresql.passwordKey` | Password key in the existing Secret | `password` |
 | `persistence.storageClassName` | Storage class name for persistent volume claim | `""` |
 | `persistence.size` | PVC disk storage request size | `10Gi` |
 | `persistence.backup.enabled` | Enable scheduled S3 database backups (`SQLITE_WITH_BACKUP` only; when `false` the DB is kept on the PVC without backups) | `false` |
@@ -98,6 +100,25 @@ The following table lists the configurable parameters of the Wombat chart and th
 | `persistence.backup.s3.accessKey` | S3 access key ID | `""` |
 | `persistence.backup.s3.secretKey` | S3 secret access key | `""` |
 | `persistence.backup.s3.existingSecret` | Existing Secret containing `access-key` and `secret-key` | `""` |
+
+To use an existing PostgreSQL server, create a Kubernetes Secret containing its password in the release namespace. Reference that Secret and set the JDBC URL and username:
+
+```yaml
+persistence:
+  type: POSTGRESQL
+  postgresql:
+    existingSecret: wombat-postgres
+    passwordKey: password
+configOverrides:
+  persistence:
+    backend:
+      postgresql:
+        jdbc-url: jdbc:postgresql://postgres.example.com:5432/wombat
+        username: wombat
+        password: "${POSTGRESQL_PASSWORD}"
+```
+
+Keep `${POSTGRESQL_PASSWORD}` as written in the example. The chart reads the password from the referenced Secret; do not put the actual password in `configOverrides`. Restart the Wombat Deployment after rotating the password. Use a compatible Wombat image, such as `0.20.0`.
 
 ### Dependencies (BoaviztAPI & Ecologits)
 

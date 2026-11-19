@@ -10,6 +10,12 @@ data:
     {{- $wombat := dict }}
     {{- $persistence := dict }}
     {{- $sqlite := dict }}
+    {{- $mode := "sqlite" }}
+    {{- if eq .Values.persistence.type "POSTGRESQL" }}
+      {{- $mode = "postgresql" }}
+    {{- else if not (or (eq .Values.persistence.type "SQLITE_TRANSIENT") (eq .Values.persistence.type "SQLITE_WITH_BACKUP")) }}
+      {{- fail (printf "Unsupported persistence.type: %s" .Values.persistence.type) }}
+    {{- end }}
     {{- if eq .Values.persistence.type "SQLITE_TRANSIENT" }}
       {{- $_ := set $sqlite "jdbc-url" "jdbc:sqlite::memory:" }}
       {{- $_ := set $sqlite "backup" (dict "enabled" false) }}
@@ -46,7 +52,11 @@ data:
       {{- end }}
       {{- $_ := set $sqlite "backup" $backup }}
     {{- end }}
-    {{- $_ := set $persistence "backend" (dict "sqlite" $sqlite) }}
+    {{- $backend := dict "mode" $mode }}
+    {{- if eq $mode "sqlite" }}
+      {{- $_ := set $backend "sqlite" $sqlite }}
+    {{- end }}
+    {{- $_ := set $persistence "backend" $backend }}
     {{- $_ := set $config "persistence" $persistence }}
 
     {{- $connector := dict }}
@@ -107,4 +117,7 @@ data:
 
 
     {{- $merged := mergeOverwrite $config .Values.configOverrides }}
+    {{- if ne $merged.persistence.backend.mode $mode }}
+      {{- fail "configOverrides.persistence.backend.mode must match persistence.type" }}
+    {{- end }}
     {{- toYaml $merged | nindent 4 }}

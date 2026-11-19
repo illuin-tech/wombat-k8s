@@ -72,9 +72,13 @@ jvmOptions:
   xms: 512M
   xmx: 512M
 
-# Persistence mode: SQLITE_TRANSIENT (Deployment) or SQLITE_WITH_BACKUP (StatefulSet)
+# Persistence mode: SQLITE_TRANSIENT (in-memory SQLite, Deployment),
+# SQLITE_WITH_BACKUP (file-backed SQLite, StatefulSet), or POSTGRESQL (existing PostgreSQL, Deployment)
 persistence:
   type: SQLITE_TRANSIENT
+  postgresql:
+    existingSecret: ""
+    passwordKey: password
   storageClassName: ""
   size: 10Gi
   backup:

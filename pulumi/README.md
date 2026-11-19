@@ -79,7 +79,13 @@ These are automatically mapped to `connector.boavizta.uri` and `connector.ecolog
 ### Persistence
 
 #### Persistence Modes
-* `persistence.type`: `SQLITE_TRANSIENT` (in-memory SQLite, Deployment) or `SQLITE_WITH_BACKUP` (file-backed SQLite with S3 backup, StatefulSet).
+* `persistence.type`: `SQLITE_TRANSIENT` (in-memory SQLite, Deployment), `SQLITE_WITH_BACKUP` (file-backed SQLite with S3 backup, StatefulSet), or `POSTGRESQL` (PostgreSQL configured through `config.persistence.backend.postgresql`, Deployment).
+
+For PostgreSQL, supply `config.persistence.backend.postgresql.jdbcUrl`, `username`, and `password`. The component connects to an existing PostgreSQL server; it does not provision one. Set the password as a Pulumi secret, for example:
+
+```bash
+pulumi config set --secret --path 'service.config.persistence.backend.postgresql.password' <password>
+```
 
 #### S3 Backup
 * `persistence.backup.enabled` (boolean, default `true` when using `SQLITE_WITH_BACKUP`): enables the periodic SQLite backup service.

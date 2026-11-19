@@ -1,4 +1,4 @@
-{{- if eq .Values.persistence.type "SQLITE_TRANSIENT" -}}
+{{- if or (eq .Values.persistence.type "SQLITE_TRANSIENT") (eq .Values.persistence.type "POSTGRESQL") -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -47,8 +47,16 @@ spec:
               value: "-Xms{{ .Values.jvmOptions.xms }} -Xmx{{ .Values.jvmOptions.xmx }}"
             - name: QUARKUS_CONFIG_LOCATIONS
               value: /deployments/config/application.yaml
-            - name: MONITOR_ENVIRONMENTS_FILE
+            - name: WOMBAT_MONITOR_ENVIRONMENTS_FILE
               value: /monitored/monitored-environments.yaml
+            {{- if and (eq .Values.persistence.type "POSTGRESQL") .Values.persistence.postgresql.existingSecret }}
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.persistence.postgresql.existingSecret | quote }}
+                  key: {{ .Values.persistence.postgresql.passwordKey | quote }}
+            {{- end }}
+            {{- include "wombat.persistenceEnv" . | nindent 12 }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:

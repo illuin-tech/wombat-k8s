@@ -1,5 +1,6 @@
 import {AppConfig} from "./wombat-args";
 import {ConfGroup, kebabize} from "../utils/tools";
+import * as pulumi from "@pulumi/pulumi";
 import * as yaml from "yaml";
 
 export function createOverrideConf(args: AppConfig): ConfGroup {
@@ -9,7 +10,7 @@ export function createOverrideConf(args: AppConfig): ConfGroup {
         [{
             id: "application-conf",
             filename: "application.yaml",
-            data: yaml.stringify(kebabize(args)),
+            data: pulumi.secret(pulumi.output(args).apply(config => yaml.stringify(kebabize(config)))),
         }]
     );
 }
