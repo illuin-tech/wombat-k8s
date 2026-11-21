@@ -38,8 +38,6 @@ These are optional settings, if left out the app's defaults apply.
 
 * `monitoredEnvironments.environments`: a map of environment id → `{ assets }`. Each asset has a `type` and an `id`, and the properties of its module, as documented in [the `wombat-core` modules](https://github.com/illuin-tech/wombat-core/tree/master/doc/module). They are passed through as they are, their keys in kebab-case (camelCase keys are converted), so a block from the module documentation or from the app's environments file can be pasted as is. See the commented sample in `Pulumi.local.yaml.dist`.
 
-Upgrading to 0.24: assets are no longer typed per module (`K8SApiAsset`, `LLMStaticAsset` and `LLMPrometheusAsset` are gone, replaced by `MonitoredEnvironmentAsset`), and their 0.20 shapes (`name`, `requestProfile`, `heartbeatSkip`) are no longer read by the app.
-
 They are compiled into a `/monitored/monitored-environments.yaml` file mounted in the container, with `environments: {}` when there are none.
 
 ### Secrets
@@ -56,10 +54,6 @@ pulumi config set --secret --path 'service.secrets.provisioned.kubeconfig-my-clu
 They are compiled into a Kubernetes `Secret`, mounted at `/secrets` as the app's directory secret resolver (`wombat.secret.directory.path`): a read-only backend, with one file per key. A key is made of letters, digits, `-` and `_`, the app's secret key format, and the deployment fails on any other.
 
 Kubeconfigs are provisioned secrets too. An asset, provisioned or created in the app, names its kubeconfig in `kubeconfigKey`. The kubeconfig must inline its certificates and keys (`certificate-authority-data`, `client-certificate-data`, `client-key-data`): the app reads it in memory, with no file to resolve a relative path against.
-
-Upgrading to 0.24:
-* `secrets` used to be a flat map of keys: move them under `secrets.provisioned`.
-* `monitoredEnvironments.kubeconfigs` is gone. Each kubeconfig becomes a provisioned secret, and each `kubernetes-api` asset names it in `kubeconfigKey`, instead of being matched to it by `id`. The assets created in the app pointed their config path at `/kubeconfigs`, which no longer exists: set their kubeconfig key from the app.
 
 ### Extensions
 

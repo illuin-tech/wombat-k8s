@@ -3,7 +3,7 @@ config:
     namespace: my-namespace
     environment: local
     container:
-      imageVersion: 0.24.0
+      imageVersion: 0.23.0
       # optional pull secret, to be removed once images move to a public registry:
       #   pulumi config set --secret --path 'service.container.pullSecret.serviceAccount' <gcr-service-account-json>
       #pullSecret:

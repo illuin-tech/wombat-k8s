@@ -4,7 +4,7 @@
 environment: local
 
 image:
-  tag: "0.24.0"
+  tag: "0.23.0"
 
 # Sidecar dependencies for emissions calculations
 dependencies:
