@@ -2,6 +2,7 @@ import {AppConfig, AppConfigCompiler, AppPackage, WombatArgs} from "./wombat-arg
 import {PersistenceConfigCompiler} from "./persistence-config";
 import {DependenciesConfigCompiler} from "./dependencies-config";
 import {ExtensionsConfigCompiler} from "./extensions-config";
+import {NodeModeConfigCompiler} from "./node-mode-config";
 import {PersistenceMode} from "./persistence-args";
 import {WorkloadType, WorkloadConfig} from "./k8s-config";
 
@@ -9,6 +10,7 @@ export function compileNativeConfig(args: WombatArgs): AppPackage {
     const config: AppConfig = { wombat: { ...args.config } };
 
     const compilers: AppConfigCompiler[] = [
+        new NodeModeConfigCompiler(),
         new PersistenceConfigCompiler(),
         new DependenciesConfigCompiler(),
         new ExtensionsConfigCompiler(),

@@ -30,6 +30,22 @@ All service settings live under the `service` config key (or pass them directly 
 * `config.metrics.aggregationWindow`: `{ duration: number, unit: "MINUTES" | "HOURS" | "DAYS" }` specifying the time window for metrics aggregation (e.g. `{ duration: 5, unit: "MINUTES" }`).
 * `config.ui.maxDateRange`: `{ duration: number, unit: "DAYS" | "MONTHS" | "YEARS" }` specifying the maximum date range queryable in the dashboard UI (e.g. `{ duration: 1, unit: "YEARS" }`).
 
+### Deployment Mode
+
+* `mode`: optional, `{ type: "standalone" }` by default. Each `WombatResource` deploys a single instance in one of these modes:
+  * `standalone`: samples its environments into its own database and serves them.
+  * `aggregator`: stores and serves the metrics pushed by workers, and samples nothing itself.
+  * `worker`: samples its environments and pushes the metrics to an aggregator. Requires `id` (unique among the workers of an aggregator), `aggregator.url` and `aggregator.apiKey` (holding `api.metric.write` and `api.environment.write` on the aggregator), and optionally `aggregator.proxyUrl` and `aggregator.timeout` (e.g. `30s`). A worker writes no metric to its own database, so it requires the `SQLITE_TRANSIENT` persistence type.
+
+A distributed setup is one `aggregator` resource plus one `worker` resource next to each environment the aggregator cannot reach. See the [Wombat distributed setup documentation](https://github.com/illuin-tech/wombat/blob/master/doc/distributed.md) for details.
+
+```bash
+pulumi config set --path 'service.mode.type' worker
+pulumi config set --path 'service.mode.id' east
+pulumi config set --path 'service.mode.aggregator.url' https://wombat-aggregator.example.com
+pulumi config set --secret --path 'service.mode.aggregator.apiKey' <api-key>
+```
+
 ### Monitored Environments
 
 * `monitoredEnvironments.environments`: a map of environment id → `{ id, name, assets }`, where each asset has a `type`, `id`, `name`, optional `resolvers`, and a `profile` configuration:

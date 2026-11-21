@@ -57,6 +57,13 @@ spec:
                   key: {{ .Values.persistence.postgresql.passwordKey | quote }}
             {{- end }}
             {{- include "wombat.persistenceEnv" . | nindent 12 }}
+            {{- if eq .Values.mode "worker" }}
+            - name: WOMBAT_WORKER_AGGREGATOR_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.worker.aggregator.existingSecret | default (printf "%s-worker" (include "wombat.fullname" .)) | quote }}
+                  key: api-key
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:

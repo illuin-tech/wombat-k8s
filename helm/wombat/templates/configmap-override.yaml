@@ -59,6 +59,32 @@ data:
     {{- $_ := set $persistence "backend" $backend }}
     {{- $_ := set $config "persistence" $persistence }}
 
+    {{- if not (has .Values.mode (list "standalone" "aggregator" "worker")) }}
+      {{- fail (printf "Unsupported mode: %s" .Values.mode) }}
+    {{- end }}
+    {{- /* Only set outside the default standalone mode, which images predating the distributed setup do not know */}}
+    {{- if ne .Values.mode "standalone" }}
+      {{- $_ := set $wombat "mode" .Values.mode }}
+      {{- $_ := set $config "wombat" $wombat }}
+    {{- end }}
+    {{- if eq .Values.mode "worker" }}
+      {{- /* Workers write no metric to their database and always run on an in-memory SQLite one */}}
+      {{- if ne .Values.persistence.type "SQLITE_TRANSIENT" }}
+        {{- fail "mode worker requires persistence.type SQLITE_TRANSIENT" }}
+      {{- end }}
+      {{- if not (and .Values.worker.id .Values.worker.aggregator.url) }}
+        {{- fail "mode worker requires worker.id and worker.aggregator.url" }}
+      {{- end }}
+      {{- if not (or .Values.worker.aggregator.apiKey .Values.worker.aggregator.existingSecret) }}
+        {{- fail "mode worker requires worker.aggregator.apiKey or worker.aggregator.existingSecret" }}
+      {{- end }}
+      {{- $aggregator := dict "url" .Values.worker.aggregator.url }}
+      {{- if .Values.worker.aggregator.proxyUrl }}{{ $_ := set $aggregator "proxy-url" .Values.worker.aggregator.proxyUrl }}{{ end }}
+      {{- if .Values.worker.aggregator.timeout }}{{ $_ := set $aggregator "timeout" .Values.worker.aggregator.timeout }}{{ end }}
+      {{- /* The API key comes from the WOMBAT_WORKER_AGGREGATOR_API_KEY env var set on the Deployment */}}
+      {{- $_ := set $wombat "worker" (dict "id" .Values.worker.id "aggregator" $aggregator) }}
+    {{- end }}
+
     {{- $connector := dict }}
     {{- if eq .Values.dependencies.boaviztapi.type "CONTAINER" }}
       {{- $_ := set $connector "boavizta" (dict "uri" "http://localhost:5001/v1/") }}

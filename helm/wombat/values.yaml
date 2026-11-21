@@ -14,6 +14,25 @@ fullnameOverride: ""
 
 environment: dev
 
+# Deployment mode of this instance:
+#   standalone: samples its environments into its own database (single-instance setup)
+#   aggregator: stores and serves the metrics pushed by workers, samples nothing itself
+#   worker:     samples its environments and pushes the metrics to an aggregator (requires SQLITE_TRANSIENT persistence)
+mode: standalone
+
+# Worker mode configuration, ignored in other modes
+worker:
+  # Owner of the environments this worker declares, unique among the workers of an aggregator
+  id: ""
+  aggregator:
+    url: ""
+    # API key holding api.metric.write and api.environment.write on the aggregator,
+    # provided as plain text or through an existing Secret containing `api-key`
+    apiKey: ""
+    existingSecret: ""
+    proxyUrl: ""
+    timeout: ""
+
 serviceAccount:
   create: false
   annotations: {}
