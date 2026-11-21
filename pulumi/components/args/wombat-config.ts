@@ -2,6 +2,7 @@ import {AppConfig, AppConfigCompiler, AppPackage, WombatArgs} from "./wombat-arg
 import {CompactionConfigCompiler, PersistenceConfigCompiler} from "./persistence-config";
 import {DependenciesConfigCompiler} from "./dependencies-config";
 import {ExtensionsConfigCompiler} from "./extensions-config";
+import {NodeModeConfigCompiler} from "./node-mode-config";
 import {UiConfigCompiler} from "./ui-config";
 import {SecretsConfigCompiler} from "./secrets-config";
 import {SecurityConfigCompiler} from "./security-config";
@@ -12,6 +13,7 @@ export function compileNativeConfig(args: WombatArgs): AppPackage {
     const config: AppConfig = { wombat: { ...args.config } };
 
     const compilers: AppConfigCompiler[] = [
+        new NodeModeConfigCompiler(),
         new PersistenceConfigCompiler(),
         new CompactionConfigCompiler(),
         new DependenciesConfigCompiler(),

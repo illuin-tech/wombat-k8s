@@ -58,6 +58,31 @@ The following table lists the configurable parameters of the Wombat chart and th
 | `jvmOptions.xms` | Initial JVM heap size | `512M` |
 | `jvmOptions.xmx` | Maximum JVM heap size | `512M` |
 
+### Deployment Mode
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `mode` | `standalone` (samples its environments into its own database), `aggregator` (stores and serves the metrics pushed by workers, samples nothing itself) or `worker` (samples its environments and pushes the metrics to an aggregator) | `standalone` |
+| `worker.id` | Worker id, owner of the environments it declares: unique among the workers of an aggregator (`worker` mode only) | `""` |
+| `worker.aggregator.url` | Base URL of the aggregator (`worker` mode only) | `""` |
+| `worker.aggregator.apiKey` | API key holding `api.metric.write` and `api.environment.write` on the aggregator, stored in a chart-managed Secret | `""` |
+| `worker.aggregator.existingSecret` | Existing Secret containing the aggregator API key under `api-key` | `""` |
+| `worker.aggregator.proxyUrl` | Optional HTTP proxy to reach the aggregator through | `""` |
+| `worker.aggregator.timeout` | Optional connect and read timeout of each request to the aggregator (e.g. `30s`) | `""` |
+
+Each release deploys a single instance: a distributed setup is one `aggregator` release plus one `worker` release next to each environment the aggregator cannot reach. A worker writes no metric to its own database, so it requires `persistence.type: SQLITE_TRANSIENT`. See the [Wombat distributed setup documentation](https://github.com/illuin-tech/wombat/blob/master/doc/distributed.md) for details.
+
+```yaml
+mode: worker
+worker:
+  id: east
+  aggregator:
+    url: https://wombat-aggregator.example.com
+    existingSecret: wombat-worker
+persistence:
+  type: SQLITE_TRANSIENT
+```
+
 ### Service & Ingress
 
 | Parameter | Description | Default |
