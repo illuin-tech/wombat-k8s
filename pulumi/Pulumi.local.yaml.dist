@@ -10,6 +10,16 @@ config:
       #  type: GAR
       #  registry: europe-docker.pkg.dev
       #  serviceAccount: CHANGEME
+    mode:
+      type: standalone
+      #type: aggregator
+      #type: worker
+      #id: east
+      #aggregator:
+      #  url: "https://wombat-aggregator.example.com"
+      #  # apiKey should be a secret, set via:
+      #  #   pulumi config set --secret --path 'service.mode.aggregator.apiKey' <value>
+      #  apiKey: CHANGEME
     dependencies:
       boaviztapi:
         type: CONTAINER

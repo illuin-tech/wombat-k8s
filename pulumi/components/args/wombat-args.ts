@@ -8,6 +8,7 @@ import {IngressArgs} from "./k8s-args";
 import {CompactionConfig, PersistenceProfile} from "./persistence-args";
 import {WombatDependencyConfig} from "./dependencies-args";
 import {ExtensionsConfig} from "./extensions-args";
+import {NodeModeProfile} from "./node-mode-args";
 import * as inputs from "@pulumi/kubernetes/types/input";
 
 export interface UiConfig {
@@ -35,6 +36,8 @@ export interface AppPackage {
 export interface WombatArgs {
     namespace: pulumi.Input<string>;
     environment: pulumi.Input<string>;
+    /* Deployment mode of this instance, standalone by default */
+    mode?: NodeModeProfile;
     config: WombatConfig;
     secrets?: {
         [key: string]: pulumi.Input<string>;
