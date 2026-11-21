@@ -72,11 +72,7 @@ spec:
               mountPath: /deployments/config
             - name: conf-monitored
               mountPath: /monitored
-            {{- if .Values.monitoredEnvironments.kubeconfigs }}
-            - name: kubeconfigs
-              mountPath: /kubeconfigs
-            {{- end }}
-            {{- if .Values.secrets }}
+            {{- if .Values.secrets.provisioned }}
             - name: secrets
               mountPath: /secrets
             {{- end }}
@@ -128,12 +124,7 @@ spec:
         - name: conf-monitored
           configMap:
             name: {{ include "wombat.fullname" . }}-monitored
-        {{- if .Values.monitoredEnvironments.kubeconfigs }}
-        - name: kubeconfigs
-          secret:
-            secretName: {{ include "wombat.fullname" . }}-kubeconfigs
-        {{- end }}
-        {{- if .Values.secrets }}
+        {{- if .Values.secrets.provisioned }}
         - name: secrets
           secret:
             secretName: {{ include "wombat.fullname" . }}-secrets

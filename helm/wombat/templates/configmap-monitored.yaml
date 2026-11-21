@@ -12,9 +12,6 @@ data:
       {{- range $asset := $env.assets }}
         {{- $rewritten := deepCopy $asset }}
         {{- $_ := set $rewritten "environment-id" $envId }}
-        {{- if or (eq $asset.type "KUBERNETES_API") (eq $asset.type "tech.illuin.wombat-module.kubernetes-api") }}
-          {{- $_ := set $rewritten "config-path" (printf "/kubeconfigs/%s.config" $asset.id) }}
-        {{- end }}
         {{- $assets = append $assets $rewritten }}
       {{- end }}
       {{- $envObj := dict "id" ($env.id | default $envId) "assets" $assets }}

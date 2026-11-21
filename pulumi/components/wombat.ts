@@ -4,6 +4,7 @@ import {WombatArgs, AppConfig, AppPackage} from "./args/wombat-args";
 import {ConfGroup, createJVMString} from "./utils/tools";
 import {createOverrideConf} from "./args/commons-config";
 import {createMonitoredEnvironmentsConf} from "./args/monitored-environments-config";
+import {createProvisionedSecretsConf} from "./args/secrets-config";
 import {createImagePullSecret} from "./utils/image-pull-secrets";
 import {createBasicAuthAnnotations, createBasicAuthSecret} from "./utils/basic-auth";
 import {compileNativeConfig, compileWorkloadConfig} from "./args/wombat-config";
@@ -108,30 +109,16 @@ export class WombatResource extends pulumi.ComponentResource {
         const appPackage: AppPackage = compileNativeConfig(args);
         const nativeConfig: AppConfig = appPackage.config;
 
-        let secretsSecret: k8s.core.v1.Secret | undefined = undefined;
-        const secretsVolumeName = "wombat-service-secrets";
-        const secretsMountPath = "/secrets";
-
-        if (args.secrets && Object.keys(args.secrets).length > 0) {
-            nativeConfig.wombat = nativeConfig.wombat || {};
-            nativeConfig.wombat.secret = nativeConfig.wombat.secret || {};
-            nativeConfig.wombat.secret.directory = nativeConfig.wombat.secret.directory || {};
-            nativeConfig.wombat.secret.directory.path = secretsMountPath;
-
-            secretsSecret = new k8s.core.v1.Secret(`wombat-service-secrets-${args.environment}`, {
-                metadata: {
-                    namespace: args.namespace,
-                    labels: labels,
-                },
-                stringData: args.secrets,
-            });
-        }
+        /* The SecretsConfigCompiler points the app's directory secret resolver at them */
+        const provisionedSecretsConf: ConfGroup | undefined = createProvisionedSecretsConf(args);
+        const provisionedSecretsSecret: k8s.core.v1.Secret | undefined = provisionedSecretsConf
+            ? new k8s.core.v1.Secret(`wombat-service-secrets-${args.environment}`, provisionedSecretsConf.asSecretArgs(args.namespace, labels))
+            : undefined;
 
         const confOverride: ConfGroup = createOverrideConf(nativeConfig);
         const confOverrideSecret = new k8s.core.v1.Secret(`wombat-service-config-${args.environment}`, confOverride.asSecretArgs(args.namespace, labels));
 
-        const { kubeconfigConf, monitoredEnvConf } = createMonitoredEnvironmentsConf(args);
-        const kubeconfigSecret = new k8s.core.v1.Secret(`wombat-service-kubeconfigs-${args.environment}`, kubeconfigConf.asSecretArgs(args.namespace, labels));
+        const monitoredEnvConf: ConfGroup = createMonitoredEnvironmentsConf(args);
         const monitoredEnvConfigMap = new k8s.core.v1.ConfigMap(`wombat-service-monitored-environments-${args.environment}`, monitoredEnvConf.asConfigMapArgs(args.namespace, labels));
 
         let extensionsClaimName: pulumi.Input<string> | undefined = undefined;
@@ -169,14 +156,13 @@ export class WombatResource extends pulumi.ComponentResource {
 
         const volumeMounts: k8s.types.input.core.v1.VolumeMount[] = [
             { name: confOverride.volumeName, mountPath: confOverride.path, readOnly: true },
-            { name: kubeconfigConf.volumeName, mountPath: kubeconfigConf.path, readOnly: true },
             { name: monitoredEnvConf.volumeName, mountPath: monitoredEnvConf.path, readOnly: true },
         ];
 
-        if (secretsSecret) {
+        if (provisionedSecretsConf) {
             volumeMounts.push({
-                name: secretsVolumeName,
-                mountPath: secretsMountPath,
+                name: provisionedSecretsConf.volumeName,
+                mountPath: provisionedSecretsConf.path,
                 readOnly: true,
             });
         }
@@ -191,14 +177,13 @@ export class WombatResource extends pulumi.ComponentResource {
 
         const volumes: k8s.types.input.core.v1.Volume[] = [
             { name: confOverride.volumeName, secret: { secretName: confOverrideSecret.metadata.name } },
-            { name: kubeconfigConf.volumeName, secret: { secretName: kubeconfigSecret.metadata.name } },
             { name: monitoredEnvConf.volumeName, configMap: { name: monitoredEnvConfigMap.metadata.name } },
         ];
 
-        if (secretsSecret) {
+        if (provisionedSecretsConf && provisionedSecretsSecret) {
             volumes.push({
-                name: secretsVolumeName,
-                secret: { secretName: secretsSecret.metadata.name },
+                name: provisionedSecretsConf.volumeName,
+                secret: { secretName: provisionedSecretsSecret.metadata.name },
             });
         }
 

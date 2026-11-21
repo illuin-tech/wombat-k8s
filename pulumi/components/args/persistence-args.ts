@@ -50,7 +50,7 @@ export interface PostgreSql extends PersistenceProfileBase {
 export type PersistenceProfile = SqliteTransient | SqliteWithBackup | PostgreSql;
 
 export interface CompactionConfig {
-    cron: pulumi.Input<string>;
-    window: pulumi.Input<string>;
-    delay: pulumi.Input<string>;
+    cron?: pulumi.Input<string>;
+    window?: pulumi.Input<string>;
+    delay?: pulumi.Input<string>;
 }

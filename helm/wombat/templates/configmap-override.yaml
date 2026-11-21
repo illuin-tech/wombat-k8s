@@ -57,6 +57,13 @@ data:
       {{- $_ := set $backend "sqlite" $sqlite }}
     {{- end }}
     {{- $_ := set $persistence "backend" $backend }}
+    {{- with .Values.compaction }}
+      {{- $compaction := dict }}
+      {{- if .cron }}{{ $_ := set $compaction "cron" .cron }}{{ end }}
+      {{- if .window }}{{ $_ := set $compaction "window" .window }}{{ end }}
+      {{- if .delay }}{{ $_ := set $compaction "delay" .delay }}{{ end }}
+      {{- $_ := set $persistence "compaction" $compaction }}
+    {{- end }}
     {{- $_ := set $config "persistence" $persistence }}
 
     {{- $connector := dict }}
@@ -72,24 +79,14 @@ data:
       {{- $_ := set $connector "ecologits" (dict "uri" .Values.dependencies.ecologits.endpoint) }}
     {{- end }}
     {{- if $connector }}
-      {{- $_ := set $config "connector" $connector }}
+      {{- $_ := set $wombat "connector" $connector }}
     {{- end }}
 
     {{- if .Values.config }}
       {{- if .Values.config.monitor }}
         {{- $monitor := dict }}
         {{- if .Values.config.monitor.heartbeat }}{{ $_ := set $monitor "heartbeat" .Values.config.monitor.heartbeat }}{{ end }}
-        {{- $_ := set $config "monitor" $monitor }}
-      {{- end }}
-      {{- if .Values.config.metrics }}
-        {{- $metrics := dict }}
-        {{- if .Values.config.metrics.aggregationWindow }}
-          {{- $agg := dict }}
-          {{- if .Values.config.metrics.aggregationWindow.duration }}{{ $_ := set $agg "duration" .Values.config.metrics.aggregationWindow.duration }}{{ end }}
-          {{- if .Values.config.metrics.aggregationWindow.unit }}{{ $_ := set $agg "unit" .Values.config.metrics.aggregationWindow.unit }}{{ end }}
-          {{- $_ := set $metrics "aggregation-window" $agg }}
-        {{- end }}
-        {{- $_ := set $config "metrics" $metrics }}
+        {{- $_ := set $wombat "monitor" $monitor }}
       {{- end }}
       {{- if .Values.config.ui }}
         {{- $ui := dict }}
@@ -103,15 +100,16 @@ data:
       {{- end }}
     {{- end }}
 
-    {{- if .Values.secrets }}
+    {{- if .Values.secrets.provisioned }}
       {{- $_ := set $wombat "secret" (dict "directory" (dict "path" "/secrets")) }}
-      {{- $_ := set $config "wombat" $wombat }}
     {{- end }}
 
     {{- if .Values.extensions.enabled }}
       {{- $module := dict }}
       {{- $_ := set $module "extension" (dict "path" (.Values.extensions.mountPath | default "/extensions")) }}
       {{- $_ := set $wombat "module" $module }}
+    {{- end }}
+    {{- if $wombat }}
       {{- $_ := set $config "wombat" $wombat }}
     {{- end }}
 
