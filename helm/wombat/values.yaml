@@ -158,7 +158,8 @@ secrets: {}
 # Generic application config overrides (merged into application.yaml)
 configOverrides: {}
 
-# Monitored environments and assets configuration
+# Optional: environments and assets provisioned at startup, read-only in the app. Without any, they are created from
+# the dashboard or the API.
 monitoredEnvironments:
   environments: {}
   # Example:

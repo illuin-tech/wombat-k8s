@@ -9,6 +9,8 @@ This repository provides Kubernetes deployment tooling for the [Wombat Carbon Tr
 * `pulumi/`: a Pulumi Component Resource library (`@illuin-public/wombat-pulumi` on NPM) for managing Wombat deployments programmatically via Pulumi (in TypeScript) - _**This is the recommended way to deploy Wombat at the moment, as it is the one we put the most effort on**_
 * `helm/`: a Helm chart for packaging and installing Wombat on Kubernetes clusters, distributed via Docker Hub as an OCI artifact (`oci://registry-1.docker.io/illuin/wombat-chart`)
 
+Both deploy a Wombat that works out of the box: once it runs, environments and their assets are created from its dashboard or its API. Optionally, both can also provision environments from your stack or values file (`monitoredEnvironments`): those are kept in sync at every startup, and read-only in the app. See [environments and provisioning](https://github.com/illuin-tech/wombat/blob/master/doc/provisioning.md).
+
 ## Pulumi Package
 
 The Pulumi library in `pulumi/` provides the `@illuin-public/wombat-pulumi` component package.

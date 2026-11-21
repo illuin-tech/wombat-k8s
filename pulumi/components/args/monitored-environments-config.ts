@@ -7,7 +7,7 @@ function createKubeconfigConf(args: WombatArgs): ConfGroup {
     return new ConfGroup(
         "/kubeconfigs",
         "kubeconfigs",
-        (args.monitoredEnvironments.kubeconfigs || []).map(kc => ({
+        (args.monitoredEnvironments?.kubeconfigs || []).map(kc => ({
             id: kc.id.toString(),
             filename: `${kc.id}.config`,
             data: kc.content.toString(),
@@ -66,7 +66,7 @@ export function createMonitoredEnvironmentsConf(args: WombatArgs): { kubeconfigC
     const kubeconfigById = new Map(kubeconfigConf.confs.map(c => [c.id, c]));
 
     const environments = Object.fromEntries(
-        Object.entries(args.monitoredEnvironments.environments).map(([envId, env]) => [
+        Object.entries(args.monitoredEnvironments?.environments || {}).map(([envId, env]) => [
             envId,
             {
                 id: env.id || envId,

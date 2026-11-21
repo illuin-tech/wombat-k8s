@@ -39,11 +39,12 @@ export interface WombatArgs {
     secrets?: {
         [key: string]: pulumi.Input<string>;
     };
-    monitoredEnvironments: {
-        environments: {
+    /** Optional: environments can be created from the app instead. Without it, nothing is provisioned. */
+    monitoredEnvironments?: {
+        environments?: {
             [envId: string]: MonitoredEnvironment;
         };
-        kubeconfigs: KubeconfigEntry[];
+        kubeconfigs?: KubeconfigEntry[];
     };
     persistence: PersistenceProfile;
     compaction: CompactionConfig;

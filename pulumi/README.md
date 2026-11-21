@@ -30,25 +30,27 @@ All service settings live under the `service` config key (or pass them directly 
 * `config.metrics.aggregationWindow`: `{ duration: number, unit: "MINUTES" | "HOURS" | "DAYS" }` specifying the time window for metrics aggregation (e.g. `{ duration: 5, unit: "MINUTES" }`).
 * `config.ui.maxDateRange`: `{ duration: number, unit: "DAYS" | "MONTHS" | "YEARS" }` specifying the maximum date range queryable in the dashboard UI (e.g. `{ duration: 1, unit: "YEARS" }`).
 
-### Monitored Environments
+### Provisioned Environments (optional)
+
+`monitoredEnvironments` is optional. Without it, Wombat starts with no environment, and they are created from its dashboard or its API. With it, the environments it declares are provisioned at every startup: kept in sync with your stack, and read-only in the app. See [environments and provisioning](https://github.com/illuin-tech/wombat/blob/master/doc/provisioning.md).
 
 * `monitoredEnvironments.environments`: a map of environment id → `{ id, name, assets }`, where each asset has a `type`, `id`, `name`, optional `resolvers`, and a `profile` configuration:
   * `tech.illuin.wombat-module.kubernetes-api`: reads cluster workload via a mounted kubeconfig. Parameters include `namespace`, optional `context`, `readTimeout`, `heartbeatSkip`, and `profile` (`provider`, `instanceType`, `location`, `lifespan`).
   * `tech.illuin.wombat-module.llm-static`: static LLM traffic estimation. Parameters include `profile.models` array (`provider`, `model`, `location`, `requestProfile.outputTokenCount`, `requestProfile.requestPerYear`).
   * `tech.illuin.wombat-module.llm-prometheus`: live LLM metrics polled from a Prometheus endpoint. Parameters include `prometheusUrl`, optional `proxyUrl`, `username`, `passwordKey`, `heartbeatSkip`, and `profile` (`provider`, `model`, `location`, `dynamicProfile.query`).
 
-Monitoring configurations are compiled into a `/monitored/monitored-environments.yaml` file mounted in the container. Each `tech.illuin.wombat-module.kubernetes-api` asset's `config-path` is automatically pointed to `/kubeconfigs/<id>.config`.
+They are compiled into a `/monitored/monitored-environments.yaml` file mounted in the container, with `environments: {}` when there are none. Each `tech.illuin.wombat-module.kubernetes-api` asset's `config-path` is automatically pointed to `/kubeconfigs/<id>.config`.
 
 ### Kubeconfigs & Secret Management
 
 #### Kubeconfigs
-Kubeconfigs are supplied inline as strings in `monitoredEnvironments.kubeconfigs`. Set each via the Pulumi CLI as a secret:
+Kubeconfigs are supplied inline as strings in the optional `monitoredEnvironments.kubeconfigs`, for the `tech.illuin.wombat-module.kubernetes-api` assets, provisioned or created in the app. Set each via the Pulumi CLI as a secret:
 
 ```bash
 pulumi config set --secret --path 'service.monitoredEnvironments.kubeconfigs[0].content' -- "$(cat /path/to/kubeconfig)"
 ```
 
-They are compiled into a Kubernetes `Secret` and mounted into the container under `/kubeconfigs/<id>.config`.
+They are compiled into a Kubernetes `Secret` and mounted into the container under `/kubeconfigs/<id>.config`: an asset created in the app points its config path there.
 
 #### Runtime Secrets
 Generic runtime secrets (e.g. Prometheus passwords referenced in `passwordKey`) are declared under `secrets`:

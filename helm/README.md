@@ -164,11 +164,15 @@ Keep `${POSTGRESQL_PASSWORD}` as written in the example. The chart reads the pas
 | `secrets` | Key-value map of generic runtime secrets mounted in `/secrets` | `{}` |
 | `configOverrides` | Arbitrary YAML map merged directly into `application.yaml` | `{}` |
 
-### Monitored Environments & Kubeconfigs
+### Provisioned Environments & Kubeconfigs (optional)
+
+Both are optional. Without environments, Wombat starts with none, and they are created from its dashboard or its API. With them, the environments declared here are provisioned at every startup: kept in sync with your values, and read-only in the app. See [environments and provisioning](https://github.com/illuin-tech/wombat/blob/master/doc/provisioning.md).
+
+Kubeconfigs serve the `tech.illuin.wombat-module.kubernetes-api` assets, provisioned or created in the app: an asset created in the app points its config path at `/kubeconfigs/<id>.config`.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `monitoredEnvironments.environments` | Map of environment definitions and monitored assets | `{}` |
+| `monitoredEnvironments.environments` | Map of the environments to provision, and their assets | `{}` (none) |
 | `monitoredEnvironments.kubeconfigs` | List of `{ id, content }` kubeconfigs mounted into `/kubeconfigs/<id>.config` | `[]` |
 
 Supported asset types:

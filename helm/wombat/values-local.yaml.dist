@@ -44,36 +44,37 @@ config:
 #   size: 1Gi
 #   mountPath: /extensions
 
-# Monitored environments and assets configuration
-monitoredEnvironments:
-  environments:
-    test:
-      name: Test Environment
-      assets:
-        - type: tech.illuin.wombat-module.kubernetes-api
-          id: my-cluster
-          name: My cluster (test)
-          namespace: my-namespace
-          configPath: /path/to/kubeconfig
-          profile:
-            provider: aws
-            instanceType: c5a.4xlarge
-            location: FRA
-            lifespan: 43800 # hours
-        - type: tech.illuin.wombat-module.llm-static
-          id: my-llm
-          name: My LLM (test)
-          profile:
-            models:
-              - provider: mistralai
-                model: mistral-large-latest
-                location: FRA
-                requestProfile:
-                  outputTokenCount: 300
-                  requestPerYear: 9125000 # ~1000 users * 5 calls * 5 inferences * 365
-  kubeconfigs:
-    - id: my-cluster
-      content: CHANGEME
+# Optional: environments provisioned at startup, read-only in the app. Without them, environments are created
+# from the dashboard or the API.
+#monitoredEnvironments:
+#  environments:
+#    test:
+#      name: Test Environment
+#      assets:
+#        - type: tech.illuin.wombat-module.kubernetes-api
+#          id: my-cluster
+#          name: My cluster (test)
+#          namespace: my-namespace
+#          configPath: /path/to/kubeconfig
+#          profile:
+#            provider: aws
+#            instanceType: c5a.4xlarge
+#            location: FRA
+#            lifespan: 43800 # hours
+#        - type: tech.illuin.wombat-module.llm-static
+#          id: my-llm
+#          name: My LLM (test)
+#          profile:
+#            models:
+#              - provider: mistralai
+#                model: mistral-large-latest
+#                location: FRA
+#                requestProfile:
+#                  outputTokenCount: 300
+#                  requestPerYear: 9125000 # ~1000 users * 5 calls * 5 inferences * 365
+#  kubeconfigs:
+#    - id: my-cluster
+#      content: CHANGEME
 
 # Persistence configuration
 persistence:
