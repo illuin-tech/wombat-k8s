@@ -44,3 +44,19 @@ export class PersistenceConfigCompiler implements AppConfigCompiler
         throw new Error(`Unsupported persistence mode: ${mode}`);
     }
 }
+
+/**
+ * Tweaks the Quarkus application configuration based on the CompactionConfig.
+ */
+export class CompactionConfigCompiler implements AppConfigCompiler
+{
+    compile(config: AppConfig, args: WombatArgs): AppPackage {
+        if (!args.compaction)
+            return { config };
+
+        /* Unset keys are left out of the YAML, so the app's defaults apply to them */
+        config.persistence = config.persistence || {};
+        config.persistence.compaction = args.compaction;
+        return { config };
+    }
+}

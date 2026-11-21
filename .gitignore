@@ -9,3 +9,5 @@
 .idea
 .junie
 *.DS_Store
+
+graphify-out/

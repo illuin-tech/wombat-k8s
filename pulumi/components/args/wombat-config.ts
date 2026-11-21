@@ -1,7 +1,9 @@
 import {AppConfig, AppConfigCompiler, AppPackage, WombatArgs} from "./wombat-args";
-import {PersistenceConfigCompiler} from "./persistence-config";
+import {CompactionConfigCompiler, PersistenceConfigCompiler} from "./persistence-config";
 import {DependenciesConfigCompiler} from "./dependencies-config";
 import {ExtensionsConfigCompiler} from "./extensions-config";
+import {UiConfigCompiler} from "./ui-config";
+import {SecretsConfigCompiler} from "./secrets-config";
 import {PersistenceMode} from "./persistence-args";
 import {WorkloadType, WorkloadConfig} from "./k8s-config";
 
@@ -10,8 +12,11 @@ export function compileNativeConfig(args: WombatArgs): AppPackage {
 
     const compilers: AppConfigCompiler[] = [
         new PersistenceConfigCompiler(),
+        new CompactionConfigCompiler(),
         new DependenciesConfigCompiler(),
         new ExtensionsConfigCompiler(),
+        new UiConfigCompiler(),
+        new SecretsConfigCompiler(),
     ]
 
     /* Apply dynamic mutations to the quarkus configuration */

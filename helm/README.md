@@ -141,11 +141,14 @@ Keep `${POSTGRESQL_PASSWORD}` as written in the example. The chart reads the pas
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `config.monitor.heartbeat` | Cron schedule controlling asset monitoring frequency | `0 * * * * ?` |
-| `config.metrics.aggregationWindow.duration` | Aggregation time window duration | `5` |
-| `config.metrics.aggregationWindow.unit` | Aggregation time window unit (`MINUTES`, `HOURS`, etc.) | `MINUTES` |
+| `config.monitor.heartbeat` | How often monitored assets are sampled: an amount and a unit `s`, `m` or `h` | `10s` |
 | `config.ui.maxDateRange.duration` | Maximum queryable date range in the dashboard UI | `1` |
 | `config.ui.maxDateRange.unit` | Maximum date range unit (`DAYS`, `MONTHS`, `YEARS`) | `YEARS` |
+| `compaction.cron` | When sampled metrics are folded (`persistence.compaction` in the app) | app default, `0 1 * * * ?` |
+| `compaction.window` | The window metrics are folded into | app default, `1h` |
+| `compaction.delay` | How long a closed window waits before it is folded | app default, `1m` |
+
+Upgrading to 0.24: the settings below used to be dropped before reaching the app, and now apply. The `CONTAINER` dependencies actually serve the connectors (they used to fall back on the public APIs), and the heartbeat, compaction and UI date range take the values given. The heartbeat is a period, e.g. `10s`, no longer a cron: a cron fails the startup. `config.metrics.aggregationWindow` is gone, replaced by `compaction`.
 
 ### Dynamic Extensions
 
@@ -161,20 +164,35 @@ Keep `${POSTGRESQL_PASSWORD}` as written in the example. The chart reads the pas
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `secrets` | Key-value map of generic runtime secrets mounted in `/secrets` | `{}` |
+| `secrets.provisioned` | Map of secret keys to values, mounted in `/secrets` as the app's directory secret resolver | `{}` |
 | `configOverrides` | Arbitrary YAML map merged directly into `application.yaml` | `{}` |
 
-### Monitored Environments & Kubeconfigs
+`secrets` holds the secret backends the app resolves secret keys from. An asset references its credentials by key, such as a `tech.illuin.wombat-module.kubernetes-api` asset's `kubeconfig-key`. Each backend is optional. See [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md).
+
+`secrets.provisioned` is compiled into a Kubernetes `Secret`, mounted at `/secrets` as the app's directory secret resolver (`wombat.secret.directory.path`): a read-only backend, with one file per key. A key is made of letters, digits, `-` and `_`, the app's secret key format, and the chart fails on any other.
+
+Kubeconfigs are provisioned secrets too. An asset, provisioned or created in the app, names its kubeconfig in `kubeconfig-key`. The kubeconfig must inline its certificates and keys (`certificate-authority-data`, `client-certificate-data`, `client-key-data`): the app reads it in memory, with no file to resolve a relative path against.
+
+```bash
+helm install wombat oci://registry-1.docker.io/illuin/wombat-chart --version <version> -f my-values.yaml \
+  --set-file secrets.provisioned.kubeconfig-my-cluster=/path/to/kubeconfig
+```
+
+Upgrading to 0.24:
+* `secrets` used to be a flat map of keys: move them under `secrets.provisioned`.
+* `monitoredEnvironments.kubeconfigs` is gone. Each kubeconfig becomes a provisioned secret, and each `kubernetes-api` asset names it in `kubeconfig-key`, instead of being matched to it by `id`. The assets created in the app pointed their config path at `/kubeconfigs`, which no longer exists: set their kubeconfig key from the app.
+
+### Provisioned Environments (optional)
+
+`monitoredEnvironments` is optional. Without it, Wombat starts with no environment, and they are created from its dashboard or its API. With it, the environments it declares are provisioned at every startup: kept in sync with your values, and read-only in the app. See [environments and provisioning](https://github.com/illuin-tech/wombat/blob/master/doc/provisioning.md).
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `monitoredEnvironments.environments` | Map of environment definitions and monitored assets | `{}` |
-| `monitoredEnvironments.kubeconfigs` | List of `{ id, content }` kubeconfigs mounted into `/kubeconfigs/<id>.config` | `[]` |
+| `monitoredEnvironments.environments` | Map of the environments to provision, and their assets | `{}` (none) |
 
-Supported asset types:
-- `tech.illuin.wombat-module.kubernetes-api`: Polls Kubernetes workload metrics using a mounted kubeconfig.
-- `tech.illuin.wombat-module.llm-static`: Static LLM consumption profiles.
-- `tech.illuin.wombat-module.llm-prometheus`: Dynamic LLM consumption gathered from Prometheus queries.
+Each environment holds a list of `assets`. An asset has a `type` and an `id`, and the properties of its module, as documented in [the `wombat-core` modules](https://github.com/illuin-tech/wombat-core/tree/master/doc/module). Write them in kebab-case, exactly as in the app's environments file (e.g. `instance-type`, not `instanceType`): the app drops the keys it doesn't know. A `tech.illuin.wombat-module.kubernetes-api` asset names its kubeconfig in `kubeconfig-key`, a key of `secrets.provisioned`. See the commented sample in `values-local.yaml.dist`.
+
+Upgrading to 0.24: the 0.20 asset shapes (`name`, `requestProfile`, camelCase keys) are no longer read by the app.
 
 ### Node Placement & Scheduling
 

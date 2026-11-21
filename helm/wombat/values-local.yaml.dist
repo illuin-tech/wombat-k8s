@@ -4,7 +4,7 @@
 environment: local
 
 image:
-  tag: "0.20.0"
+  tag: "0.24.0"
 
 # Sidecar dependencies for emissions calculations
 dependencies:
@@ -21,18 +21,21 @@ dependencies:
 config:
   monitor:
     heartbeat: "10s"
-  metrics:
-    aggregationWindow:
-      duration: 5
-      unit: MINUTES
   ui:
     maxDateRange:
       duration: 1
       unit: YEARS
 
-# Generic runtime secrets mounted under /secrets (e.g. for Prometheus basic auth)
-# secrets:
-#   WOMBAT_PROMETHEUS_PASSWORD: CHANGEME
+# Metric compaction
+compaction:
+  cron: "0 1 * * * ?"
+  window: "1h"
+  delay: "1m"
+
+# Optional: secrets set with the deployment, mounted under /secrets as the app's directory secret resolver
+#secrets:
+#  provisioned:
+#    kubeconfig-my-cluster: CHANGEME  # the kubeconfig referenced by the kubernetes-api asset below
 
 # Dynamic extensions storage
 # extensions:
@@ -44,36 +47,35 @@ config:
 #   size: 1Gi
 #   mountPath: /extensions
 
-# Monitored environments and assets configuration
-monitoredEnvironments:
-  environments:
-    test:
-      name: Test Environment
-      assets:
-        - type: tech.illuin.wombat-module.kubernetes-api
-          id: my-cluster
-          name: My cluster (test)
-          namespace: my-namespace
-          configPath: /path/to/kubeconfig
-          profile:
-            provider: aws
-            instanceType: c5a.4xlarge
-            location: FRA
-            lifespan: 43800 # hours
-        - type: tech.illuin.wombat-module.llm-static
-          id: my-llm
-          name: My LLM (test)
-          profile:
-            models:
-              - provider: mistralai
-                model: mistral-large-latest
-                location: FRA
-                requestProfile:
-                  outputTokenCount: 300
-                  requestPerYear: 9125000 # ~1000 users * 5 calls * 5 inferences * 365
-  kubeconfigs:
-    - id: my-cluster
-      content: CHANGEME
+# Optional: environments provisioned at startup, read-only in the app. Without them, environments are created
+# from the dashboard or the API.
+#monitoredEnvironments:
+#  environments:
+#    test:
+#      assets:
+#        - type: tech.illuin.wombat-module.kubernetes-api
+#          id: my-cluster
+#          kubeconfig-key: kubeconfig-my-cluster  # a key of secrets.provisioned
+#          namespace: my-namespace
+#          profile:
+#            provider: aws
+#            instance-type: c5a.4xlarge
+#            location: FRA
+#            lifespan: 5y
+#        - type: tech.illuin.wombat-module.llm-static
+#          id: my-llm
+#          profile:
+#            zone-id: Europe/Paris
+#            models:
+#              - provider: mistralai
+#                model: mistral-large-latest
+#                location: FRA
+#                scenarios:
+#                  - type: user_activity
+#                    request-per-year: 9125000  # ~1000 users * 5 calls * 5 inferences * 365
+#                    output-token-per-request: 300
+#                    opening-time: "08:00:00"
+#                    closing-time: "18:00:00"
 
 # Persistence configuration
 persistence:

@@ -26,38 +26,40 @@ All service settings live under the `service` config key (or pass them directly 
 
 ### Application & Monitoring Configuration
 
-* `config.monitor.heartbeat`: CRON expression controlling how often monitored assets are polled (e.g. `"*/10 * * * * ?"`).
-* `config.metrics.aggregationWindow`: `{ duration: number, unit: "MINUTES" | "HOURS" | "DAYS" }` specifying the time window for metrics aggregation (e.g. `{ duration: 5, unit: "MINUTES" }`).
-* `config.ui.maxDateRange`: `{ duration: number, unit: "DAYS" | "MONTHS" | "YEARS" }` specifying the maximum date range queryable in the dashboard UI (e.g. `{ duration: 1, unit: "YEARS" }`).
+These are optional settings, if left out the app's defaults apply.
 
-### Monitored Environments
+* `config.monitor.heartbeat`: how often monitored assets are sampled, as an amount and a unit `s`, `m` or `h` (e.g. `"10s"`, the default).
+* `compaction`: how sampled metrics are folded (`persistence.compaction` in the app): `cron` (default `"0 1 * * * ?"`), `window` (default `"1h"`) and `delay` (default `"1m"`).
+* `ui.maxDateRange`: `{ duration: number, unit: "DAYS" | "MONTHS" | "YEARS" }` specifying the maximum date range queryable in the dashboard UI (default `{ duration: 1, unit: "YEARS" }`).
 
-* `monitoredEnvironments.environments`: a map of environment id → `{ id, name, assets }`, where each asset has a `type`, `id`, `name`, optional `resolvers`, and a `profile` configuration:
-  * `tech.illuin.wombat-module.kubernetes-api`: reads cluster workload via a mounted kubeconfig. Parameters include `namespace`, optional `context`, `readTimeout`, `heartbeatSkip`, and `profile` (`provider`, `instanceType`, `location`, `lifespan`).
-  * `tech.illuin.wombat-module.llm-static`: static LLM traffic estimation. Parameters include `profile.models` array (`provider`, `model`, `location`, `requestProfile.outputTokenCount`, `requestProfile.requestPerYear`).
-  * `tech.illuin.wombat-module.llm-prometheus`: live LLM metrics polled from a Prometheus endpoint. Parameters include `prometheusUrl`, optional `proxyUrl`, `username`, `passwordKey`, `heartbeatSkip`, and `profile` (`provider`, `model`, `location`, `dynamicProfile.query`).
+### Provisioned Environments (optional)
 
-Monitoring configurations are compiled into a `/monitored/monitored-environments.yaml` file mounted in the container. Each `tech.illuin.wombat-module.kubernetes-api` asset's `config-path` is automatically pointed to `/kubeconfigs/<id>.config`.
+`monitoredEnvironments` is optional. Without it, Wombat starts with no environment, and they are created from its dashboard or its API. With it, the environments it declares are provisioned at every startup: kept in sync with your stack, and read-only in the app. See [environments and provisioning](https://github.com/illuin-tech/wombat/blob/master/doc/provisioning.md).
 
-### Kubeconfigs & Secret Management
+* `monitoredEnvironments.environments`: a map of environment id → `{ assets }`. Each asset has a `type` and an `id`, and the properties of its module, as documented in [the `wombat-core` modules](https://github.com/illuin-tech/wombat-core/tree/master/doc/module). They are passed through as they are, their keys in kebab-case (camelCase keys are converted), so a block from the module documentation or from the app's environments file can be pasted as is. See the commented sample in `Pulumi.local.yaml.dist`.
 
-#### Kubeconfigs
-Kubeconfigs are supplied inline as strings in `monitoredEnvironments.kubeconfigs`. Set each via the Pulumi CLI as a secret:
+Upgrading to 0.24: assets are no longer typed per module (`K8SApiAsset`, `LLMStaticAsset` and `LLMPrometheusAsset` are gone, replaced by `MonitoredEnvironmentAsset`), and their 0.20 shapes (`name`, `requestProfile`, `heartbeatSkip`) are no longer read by the app.
 
-```bash
-pulumi config set --secret --path 'service.monitoredEnvironments.kubeconfigs[0].content' -- "$(cat /path/to/kubeconfig)"
-```
+They are compiled into a `/monitored/monitored-environments.yaml` file mounted in the container, with `environments: {}` when there are none.
 
-They are compiled into a Kubernetes `Secret` and mounted into the container under `/kubeconfigs/<id>.config`.
+### Secrets
 
-#### Runtime Secrets
-Generic runtime secrets (e.g. Prometheus passwords referenced in `passwordKey`) are declared under `secrets`:
+`secrets` holds the secret backends the app resolves secret keys from. An asset references its credentials by key, such as a `tech.illuin.wombat-module.kubernetes-api` asset's `kubeconfigKey`. Each backend is optional. See [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md).
+
+#### Provisioned Secrets
+`secrets.provisioned` maps keys to values, each set as a Pulumi secret:
 
 ```bash
-pulumi config set --secret --path 'service.secrets.WOMBAT_PROMETHEUS_PASSWORD' <password>
+pulumi config set --secret --path 'service.secrets.provisioned.kubeconfig-my-cluster' -- "$(cat /path/to/kubeconfig)"
 ```
 
-When provided, Pulumi provisions a Kubernetes `Secret` mounted as a directory volume at `/secrets`, and configures `wombat.secret.directory.path: /secrets`. The backend's `DirectorySecretResolver` resolves secrets directly from this directory.
+They are compiled into a Kubernetes `Secret`, mounted at `/secrets` as the app's directory secret resolver (`wombat.secret.directory.path`): a read-only backend, with one file per key. A key is made of letters, digits, `-` and `_`, the app's secret key format, and the deployment fails on any other.
+
+Kubeconfigs are provisioned secrets too. An asset, provisioned or created in the app, names its kubeconfig in `kubeconfigKey`. The kubeconfig must inline its certificates and keys (`certificate-authority-data`, `client-certificate-data`, `client-key-data`): the app reads it in memory, with no file to resolve a relative path against.
+
+Upgrading to 0.24:
+* `secrets` used to be a flat map of keys: move them under `secrets.provisioned`.
+* `monitoredEnvironments.kubeconfigs` is gone. Each kubeconfig becomes a provisioned secret, and each `kubernetes-api` asset names it in `kubeconfigKey`, instead of being matched to it by `id`. The assets created in the app pointed their config path at `/kubeconfigs`, which no longer exists: set their kubeconfig key from the app.
 
 ### Extensions
 

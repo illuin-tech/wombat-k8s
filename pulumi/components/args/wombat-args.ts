@@ -3,7 +3,8 @@ import * as k8s from "@pulumi/kubernetes";
 import {JVMOptions} from "../utils/tools";
 import {PullSecretConfig} from "../utils/image-pull-secrets";
 import {Duration} from "./commons-args";
-import {MonitoredEnvironment, KubeconfigEntry} from "./monitored-environments-args";
+import {MonitoredEnvironment} from "./monitored-environments-args";
+import {SecretsConfig} from "./secrets-args";
 import {IngressArgs} from "./k8s-args";
 import {CompactionConfig, PersistenceProfile} from "./persistence-args";
 import {WombatDependencyConfig} from "./dependencies-args";
@@ -21,6 +22,7 @@ export interface WombatConfig {
 export interface AppConfig {
     wombat: WombatConfig;
     persistence?: { [key: string]: any; }
+    ui?: { [key: string]: any; }
 }
 
 export interface AppConfigCompiler {
@@ -36,18 +38,16 @@ export interface WombatArgs {
     namespace: pulumi.Input<string>;
     environment: pulumi.Input<string>;
     config: WombatConfig;
-    secrets?: {
-        [key: string]: pulumi.Input<string>;
-    };
-    monitoredEnvironments: {
-        environments: {
+    secrets?: SecretsConfig;
+    /** Optional: environments can be created from the app instead. Without it, nothing is provisioned. */
+    monitoredEnvironments?: {
+        environments?: {
             [envId: string]: MonitoredEnvironment;
         };
-        kubeconfigs: KubeconfigEntry[];
     };
     persistence: PersistenceProfile;
-    compaction: CompactionConfig;
-    ui: UiConfig;
+    compaction?: CompactionConfig;
+    ui?: UiConfig;
     dependencies: WombatDependencyConfig;
     extensions?: ExtensionsConfig;
     container: {
