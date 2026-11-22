@@ -193,10 +193,10 @@ monitoredEnvironments:
   #           - provider: mistralai
   #             model: mistral-large-latest
   #             location: FRA
+  #             request-per-year: 9125000  # ~1000 users * 5 calls * 5 inferences * 365
+  #             output-token-per-request: 300
   #             scenarios:
   #               - type: user_activity
-  #                 request-per-year: 9125000  # ~1000 users * 5 calls * 5 inferences * 365
-  #                 output-token-per-request: 300
   #                 opening-time: "08:00:00"
   #                 closing-time: "18:00:00"
 
