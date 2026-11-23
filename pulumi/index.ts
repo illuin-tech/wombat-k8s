@@ -11,6 +11,8 @@ export * from "./components/args/k8s-args";
 export * from "./components/args/k8s-config";
 export * from "./components/args/monitored-environments-args";
 export * from "./components/args/monitored-environments-config";
+export * from "./components/args/node-mode-args";
+export * from "./components/args/node-mode-config";
 export * from "./components/args/persistence-args";
 export * from "./components/args/persistence-config";
 export * from "./components/args/secrets-args";
