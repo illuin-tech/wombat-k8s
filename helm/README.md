@@ -122,43 +122,42 @@ Keep `${POSTGRESQL_PASSWORD}` as written in the example. The chart reads the pas
 
 ### OIDC Authentication
 
+`security` turns on the app's `oidc` profile (see [access control](https://github.com/illuin-tech/wombat/blob/master/doc/access-control.md)). Its keys are camelCase, written kebab-case to `quarkus.oidc` and `auth` in `application.yaml`.
+
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `security.enabled` | Enable Wombat's `prod,oidc` profile | `false` |
-| `security.oidc.auth-server-url` | OIDC issuer URL | Required when enabled |
-| `security.oidc.client-id` | OIDC client ID | Required when enabled |
-| `security.oidc.credentials.secret` | OIDC client secret; chart creates a Kubernetes Secret, but Helm also stores the value in release metadata | Required unless `existingSecret` is set |
-| `security.oidc.credentials.existingSecret` | Existing Secret in the release namespace containing the `client-secret` key; avoids storing the credential in Helm release metadata | `""` |
-| `security.oidc.authentication.scopes` | OIDC scopes requested during sign-in | Wombat profile default |
-| `security.oidc.authentication.user-info-required` | Require a UserInfo request from the provider | Not set |
-| `security.oidc.authentication.extra-params` | Extra parameters sent with the authorization request | Not set |
-| `security.oidc.roles.role-claim-path` | Override the provider's role claim path | Not set |
-| `security.oidc.roles.source` | Override the role claim source, e.g. `accesstoken` | Not set |
-| `security.auth.allowed-email-domains` | Restrict sign-in to these email domains | Not set |
-| `security.auth.email-claim` | Claim Wombat reads as the user's email | Provider default |
-| `security.auth.require-verified-email` | Require the provider to mark the email as verified | `true` |
-| `security.auth.display-name-claims` | Claims tried in order to choose a display name | Not set |
-| `security.auth.idp-logout` | Also end the identity-provider session on logout | Provider default |
-| `security.auth.roles.admin` | Provider roles or emails granted Wombat admin access | Required when enabled |
-| `security.auth.roles.user` | Provider roles or emails granted Wombat user access | Not set |
+| `security.enabled` | Turn on the app's `oidc` profile | `false` |
+| `security.oidc.authServerUrl` | OIDC issuer URL | Required when enabled |
+| `security.oidc.clientId` | OIDC client ID | Required when enabled |
+| `security.oidc.credentials.secret` | OIDC client secret, kept in a Secret the chart creates | Required when enabled |
+| `security.oidc.authentication.scopes` | Scopes requested during sign-in | `[email, profile]` |
+| `security.oidc.authentication.userInfoRequired` | Call the provider's UserInfo endpoint | App default |
+| `security.oidc.authentication.extraParams` | Extra parameters of the authorization request | App default |
+| `security.oidc.roles.roleClaimPath` | Claim holding the provider's roles, e.g. `realm_access/roles` for Keycloak | App default |
+| `security.oidc.roles.source` | Token holding that claim, e.g. `accesstoken` | App default |
+| `security.auth.roles.admin` | Provider roles or groups, emails, or `"*"` granting the Wombat `admin` role | Required when enabled |
+| `security.auth.roles.user` | Same, for the `user` role | App default |
+| `security.auth.roles.apiKeyManager` | Same, for the `api-key-manager` role | App default |
+| `security.auth.allowedEmailDomains` | Only let in users with an email of these domains | App default |
+| `security.auth.emailClaim` | Claim holding the user's email | `email` |
+| `security.auth.requireVerifiedEmail` | Ignore emails the provider doesn't flag as verified | `true` |
+| `security.auth.displayNameClaims` | Claims tried in order to display the user | `[email, name, preferred_username]` |
+| `security.auth.idpLogout` | Also end the provider's session on logout | `true` |
+| `security.auth.apiKeys.maxLifetime` | Longest lifetime of an API key | `365d` |
+| `security.auth.apiKeys.allowNeverExpiring` | Allow API keys that never expire | `false` |
 
 ```yaml
 security:
   enabled: true
   oidc:
-    auth-server-url: https://idp.example.com
-    client-id: wombat
+    authServerUrl: https://idp.example.com
+    clientId: wombat
     credentials:
       secret: CHANGE_ME
-      existingSecret: ""
     authentication:
-      user-info-required: true
+      userInfoRequired: true
   auth:
-    allowed-email-domains: [example.com]
-    email-claim: email
-    require-verified-email: true
-    display-name-claims: [email, name, preferred_username]
-    idp-logout: true
+    allowedEmailDomains: [example.com]
     roles:
       admin: [wombat-admins]
       user: [wombat-users]

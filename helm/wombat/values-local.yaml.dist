@@ -37,31 +37,28 @@ compaction:
 #  provisioned:
 #    kubeconfig-my-cluster: CHANGEME  # the kubeconfig referenced by the kubernetes-api asset below
 
-security:
-  enabled: true
-  oidc:
-    auth-server-url: https://idp.example.com
-    client-id: CHANGEME
-    credentials:
-      # Set exactly one; existingSecret avoids storing the credential in Helm release metadata.
-      secret: CHANGEME
-      existingSecret: ""
-    authentication:
-      scopes:
-        - email
-        - profile
-      user-info-required: true
-      extra-params:
-        prompt: select_account
-  auth:
-    allowed-email-domains: [example.com]
-    email-claim: email
-    require-verified-email: true
-    display-name-claims: [email, name, preferred_username]
-    idp-logout: true
-    roles:
-      admin: [wombat-admins]
-      user: [wombat-users]
+# To enable OIDC authentication:
+#security:
+#  enabled: true
+#  oidc:
+#    authServerUrl: https://idp.example.com
+#    clientId: wombat
+#    credentials:
+#      secret: CHANGEME
+#    authentication:
+#      scopes: [email, profile]
+#      userInfoRequired: true
+#      extraParams:
+#        prompt: select_account
+#  auth:
+#    allowedEmailDomains: [example.com]
+#    emailClaim: email
+#    requireVerifiedEmail: true
+#    displayNameClaims: [email, name, preferred_username]
+#    idpLogout: true
+#    roles:
+#      admin: [wombat-admins]
+#      user: [wombat-users]
 
 # Dynamic extensions storage
 # extensions:

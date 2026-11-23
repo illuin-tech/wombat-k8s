@@ -32,9 +32,18 @@ These are optional settings, if left out the app's defaults apply.
 * `compaction`: how sampled metrics are folded (`persistence.compaction` in the app): `cron` (default `"0 1 * * * ?"`), `window` (default `"1h"`) and `delay` (default `"1m"`).
 * `ui.maxDateRange`: `{ duration: number, unit: "DAYS" | "MONTHS" | "YEARS" }` specifying the maximum date range queryable in the dashboard UI (default `{ duration: 1, unit: "YEARS" }`).
 
-### OIDC Authentication
+### OIDC Authentication (optional)
 
-Set `security.enabled` to enable Wombat's `prod,oidc` profile. Pulumi writes the Quarkus settings to `quarkus.oidc` and Wombat access rules to the top-level `auth` section. The client secret is stored in a Kubernetes Secret; mark it as a Pulumi secret:
+`security` turns on the app's `oidc` profile (see [access control](https://github.com/illuin-tech/wombat/blob/master/doc/access-control.md)). Without it, the app runs without authentication.
+
+* `security.enabled`: turns it on.
+* `security.oidc`: the identity provider, written to `quarkus.oidc`
+  * `authServerUrl` (the issuer URL) and `clientId` are required.
+  * `authentication` (`scopes`, `userInfoRequired`, `extraParams`) and `roles` (`roleClaimPath`, `source`) are optional.
+* `security.oidc.credentials.secret`: the OIDC client secret, required, as a Pulumi secret. It is written to the `application.yaml` override, which is itself a Secret.
+* `security.auth`: the access rules, written to `auth`.
+  * `roles.admin` is required.
+  * `roles.user`, `roles.apiKeyManager`, `allowedEmailDomains`, `emailClaim`, `requireVerifiedEmail`, `displayNameClaims`, `idpLogout` and `apiKeys` (`maxLifetime`, `allowNeverExpiring`) are all optional.
 
 ```yaml
 security:
@@ -42,30 +51,18 @@ security:
   oidc:
     authServerUrl: https://idp.example.com
     clientId: wombat
-    # Set exactly one: clientSecret or existingSecret.
-    clientSecret: CHANGE_ME
-    # existingSecret: wombat-oidc-client
     authentication:
-      scopes: [email, profile]
       userInfoRequired: true
-      extraParams:
-        prompt: select_account
   auth:
     allowedEmailDomains: [example.com]
-    emailClaim: email
-    requireVerifiedEmail: true
-    displayNameClaims: [email, name, preferred_username]
-    idpLogout: true
     roles:
       admin: [wombat-admins]
       user: [wombat-users]
 ```
 
 ```bash
-pulumi config set --secret --path 'service.security.oidc.clientSecret' <client-secret>
+pulumi config set --secret --path 'service.security.oidc.credentials.secret' <client-secret>
 ```
-
-Alternatively, set `security.oidc.existingSecret` to the name of a Kubernetes Secret in the same namespace. It must contain a `client-secret` key; Pulumi will reference it without creating or managing that Secret. Restart the Wombat pod after rotating the existing Secret because Kubernetes does not refresh environment variables in running containers.
 
 ### Provisioned Environments (optional)
 

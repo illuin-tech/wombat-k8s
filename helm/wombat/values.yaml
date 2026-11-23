@@ -146,31 +146,35 @@ compaction: {}
 #  window: 1h
 #  delay: 1m
 
+# OIDC authentication, the app's oidc profile: see https://github.com/illuin-tech/wombat/blob/master/doc/access-control.md
 security:
   enabled: false
   oidc: {}
+  #  authServerUrl: https://idp.example.com  # the issuer URL
+  #  clientId: wombat
+  #  credentials:
+  #    secret: CHANGEME  # the chart keeps it in a Secret
+  #  authentication:
+  #    scopes: [email, profile]
+  #    userInfoRequired: true
+  #    extraParams:
+  #      prompt: select_account
+  #  roles:  # where the provider puts its roles, e.g. for Keycloak
+  #    roleClaimPath: realm_access/roles
+  #    source: accesstoken
   auth: {}
-# Example:
-# security:
-#   enabled: true
-#   oidc:
-#     auth-server-url: https://idp.example.com
-#     client-id: wombat
-#     credentials:
-#       # Set exactly one of secret or existingSecret.
-#       secret: CHANGEME
-#       existingSecret: ""
-#     authentication:
-#       user-info-required: true
-#   auth:
-#     allowed-email-domains: [example.com]
-#     email-claim: email
-#     require-verified-email: true
-#     display-name-claims: [email, name, preferred_username]
-#     idp-logout: true
-#     roles:
-#       admin: [wombat-admins]
-#       user: [wombat-users]
+  #  roles:  # provider roles or groups, emails, or "*" granting each Wombat role
+  #    admin: [wombat-admins]
+  #    user: [wombat-users]
+  #    apiKeyManager: [wombat-key-managers]
+  #  allowedEmailDomains: [example.com]
+  #  emailClaim: email
+  #  requireVerifiedEmail: true
+  #  displayNameClaims: [email, name, preferred_username]
+  #  idpLogout: true
+  #  apiKeys:
+  #    maxLifetime: 365d
+  #    allowNeverExpiring: false
 
 # Dynamic extensions storage
 extensions:

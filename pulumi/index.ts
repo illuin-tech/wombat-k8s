@@ -15,6 +15,8 @@ export * from "./components/args/persistence-args";
 export * from "./components/args/persistence-config";
 export * from "./components/args/secrets-args";
 export * from "./components/args/secrets-config";
+export * from "./components/args/security-args";
+export * from "./components/args/security-config";
 export * from "./components/args/ui-config";
 export * from "./components/utils/basic-auth";
 export * from "./components/utils/image-pull-secrets";

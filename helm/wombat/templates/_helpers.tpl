@@ -23,39 +23,6 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 {{- end }}
 
-{{- define "wombat.oidcEnv" -}}
-{{- if .Values.security.enabled }}
-{{- $oidc := .Values.security.oidc | default dict }}
-{{- $credentials := $oidc.credentials | default dict }}
-{{- $authServerUrl := index $oidc "auth-server-url" }}
-{{- $clientId := index $oidc "client-id" }}
-{{- $configOverrides := .Values.configOverrides | default dict }}
-{{- $authOverrides := $configOverrides.auth | default dict }}
-{{- $securityAuth := .Values.security.auth | default dict }}
-{{- $auth := mergeOverwrite $securityAuth $authOverrides }}
-{{- $roles := $auth.roles | default dict }}
-{{- $existingSecret := $credentials.existingSecret }}
-{{- if not $roles.admin }}
-{{- fail "security.auth.roles.admin must contain at least one role or email when security.enabled is true" }}
-{{- end }}
-{{- if and $credentials.secret $existingSecret }}
-{{- fail "Set only one of security.oidc.credentials.secret or security.oidc.credentials.existingSecret" }}
-{{- end }}
-{{- if not (or $credentials.secret $existingSecret) }}
-{{- fail "security.oidc.credentials.secret or security.oidc.credentials.existingSecret is required when security.enabled is true" }}
-{{- end }}
-{{- $_ := required "security.oidc.auth-server-url is required when security.enabled is true" $authServerUrl }}
-{{- $_ := required "security.oidc.client-id is required when security.enabled is true" $clientId }}
-- name: QUARKUS_PROFILE
-  value: "prod,oidc"
-- name: QUARKUS_OIDC_CREDENTIALS_SECRET
-  valueFrom:
-    secretKeyRef:
-      name: {{ $existingSecret | default (printf "%s-oidc" (include "wombat.fullname" .)) | quote }}
-      key: client-secret
-{{- end }}
-{{- end }}
-
 {{/*
 Create chart name and version as used by the chart label.
 */}}
@@ -119,4 +86,36 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 {{- end }}
+{{- end }}
+
+{{/*
+Turns on the app's oidc profile and passes it the client secret, validated in configmap-override.yaml
+*/}}
+{{- define "wombat.oidcEnv" -}}
+{{- if .Values.security.enabled }}
+- name: QUARKUS_PROFILE
+  value: "prod,oidc"
+- name: QUARKUS_OIDC_CREDENTIALS_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "wombat.fullname" . }}-oidc
+      key: client-secret
+{{- end }}
+{{- end }}
+
+{{/*
+Turns the camelCase keys of a map into the kebab-case keys of application.yaml, recursively, as Pulumi's kebabize does.
+Returns YAML: pipe it into fromYaml.
+*/}}
+{{- define "wombat.kebabize" -}}
+{{- $kebab := dict }}
+{{- range $key, $value := . }}
+{{- $name := regexReplaceAll "([a-z])([A-Z])" $key "${1}-${2}" | lower }}
+{{- if kindIs "map" $value }}
+{{- $_ := set $kebab $name (include "wombat.kebabize" $value | fromYaml) }}
+{{- else }}
+{{- $_ := set $kebab $name $value }}
+{{- end }}
+{{- end }}
+{{- toYaml $kebab }}
 {{- end }}
