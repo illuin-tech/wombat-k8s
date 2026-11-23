@@ -15,6 +15,7 @@ spec:
       annotations:
         checksum/config-override: {{ include (print $.Template.BasePath "/configmap-override.yaml") . | sha256sum }}
         checksum/config-monitored: {{ include (print $.Template.BasePath "/configmap-monitored.yaml") . | sha256sum }}
+        checksum/oidc-secret: {{ include (print $.Template.BasePath "/secret-oidc.yaml") . | sha256sum }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -49,6 +50,7 @@ spec:
               value: /deployments/config/application.yaml
             - name: WOMBAT_MONITOR_ENVIRONMENTS_FILE
               value: /monitored/monitored-environments.yaml
+            {{- include "wombat.oidcEnv" . | nindent 12 }}
             {{- if and (eq .Values.persistence.type "POSTGRESQL") .Values.persistence.postgresql.existingSecret }}
             - name: POSTGRESQL_PASSWORD
               valueFrom:

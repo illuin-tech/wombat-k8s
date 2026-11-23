@@ -4,6 +4,7 @@ import {DependenciesConfigCompiler} from "./dependencies-config";
 import {ExtensionsConfigCompiler} from "./extensions-config";
 import {UiConfigCompiler} from "./ui-config";
 import {SecretsConfigCompiler} from "./secrets-config";
+import {SecurityConfigCompiler} from "./security-config";
 import {PersistenceMode} from "./persistence-args";
 import {WorkloadType, WorkloadConfig} from "./k8s-config";
 
@@ -17,6 +18,7 @@ export function compileNativeConfig(args: WombatArgs): AppPackage {
         new ExtensionsConfigCompiler(),
         new UiConfigCompiler(),
         new SecretsConfigCompiler(),
+        new SecurityConfigCompiler(),
     ]
 
     /* Apply dynamic mutations to the quarkus configuration */

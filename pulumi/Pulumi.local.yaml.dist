@@ -28,6 +28,32 @@ config:
       delay: "1m"
     ui:
       maxDateRange: { duration: 1, unit: YEARS }
+
+    security:
+      enabled: false
+      # To enable OIDC, set enabled to true and configure oidc below:
+      #oidc:
+      #  authServerUrl: https://idp.example.com
+      #  clientId: wombat
+      #  # Store this as a Pulumi secret:
+      #  #   pulumi config set --secret --path 'service.security.oidc.clientSecret' <client-secret>
+      #  clientSecret: CHANGEME
+      #  # Or reference an existing Kubernetes Secret with a client-secret key:
+      #  # existingSecret: wombat-oidc-client
+      #  authentication:
+      #    scopes: [email, profile]
+      #    userInfoRequired: true
+      #    extraParams:
+      #      prompt: select_account
+      #auth:
+      #  allowedEmailDomains: [example.com]
+      #  emailClaim: email
+      #  requireVerifiedEmail: true
+      #  displayNameClaims: [email, name, preferred_username]
+      #  idpLogout: true
+      #  roles:
+      #    admin: [wombat-admins]
+      #    user: [wombat-users]
     # Optional: secrets set with the deployment, mounted under /secrets as the app's directory secret resolver
     #secrets:
     #  provisioned:

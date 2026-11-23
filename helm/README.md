@@ -120,6 +120,50 @@ configOverrides:
 
 Keep `${POSTGRESQL_PASSWORD}` as written in the example. The chart reads the password from the referenced Secret; do not put the actual password in `configOverrides`. Restart the Wombat Deployment after rotating the password. Use a compatible Wombat image, such as `0.20.0`.
 
+### OIDC Authentication
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `security.enabled` | Enable Wombat's `prod,oidc` profile | `false` |
+| `security.oidc.auth-server-url` | OIDC issuer URL | Required when enabled |
+| `security.oidc.client-id` | OIDC client ID | Required when enabled |
+| `security.oidc.credentials.secret` | OIDC client secret; chart creates a Kubernetes Secret, but Helm also stores the value in release metadata | Required unless `existingSecret` is set |
+| `security.oidc.credentials.existingSecret` | Existing Secret in the release namespace containing the `client-secret` key; avoids storing the credential in Helm release metadata | `""` |
+| `security.oidc.authentication.scopes` | OIDC scopes requested during sign-in | Wombat profile default |
+| `security.oidc.authentication.user-info-required` | Require a UserInfo request from the provider | Not set |
+| `security.oidc.authentication.extra-params` | Extra parameters sent with the authorization request | Not set |
+| `security.oidc.roles.role-claim-path` | Override the provider's role claim path | Not set |
+| `security.oidc.roles.source` | Override the role claim source, e.g. `accesstoken` | Not set |
+| `security.auth.allowed-email-domains` | Restrict sign-in to these email domains | Not set |
+| `security.auth.email-claim` | Claim Wombat reads as the user's email | Provider default |
+| `security.auth.require-verified-email` | Require the provider to mark the email as verified | `true` |
+| `security.auth.display-name-claims` | Claims tried in order to choose a display name | Not set |
+| `security.auth.idp-logout` | Also end the identity-provider session on logout | Provider default |
+| `security.auth.roles.admin` | Provider roles or emails granted Wombat admin access | Required when enabled |
+| `security.auth.roles.user` | Provider roles or emails granted Wombat user access | Not set |
+
+```yaml
+security:
+  enabled: true
+  oidc:
+    auth-server-url: https://idp.example.com
+    client-id: wombat
+    credentials:
+      secret: CHANGE_ME
+      existingSecret: ""
+    authentication:
+      user-info-required: true
+  auth:
+    allowed-email-domains: [example.com]
+    email-claim: email
+    require-verified-email: true
+    display-name-claims: [email, name, preferred_username]
+    idp-logout: true
+    roles:
+      admin: [wombat-admins]
+      user: [wombat-users]
+```
+
 ### Dependencies (BoaviztAPI & Ecologits)
 
 | Parameter | Description | Default |

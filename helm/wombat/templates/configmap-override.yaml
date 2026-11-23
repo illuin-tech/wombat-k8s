@@ -113,6 +113,25 @@ data:
       {{- $_ := set $config "wombat" $wombat }}
     {{- end }}
 
+    {{- if .Values.security.enabled }}
+      {{- $security := .Values.security }}
+      {{- $oidcValues := $security.oidc | default dict }}
+      {{- $oidcCredentials := $oidcValues.credentials | default dict }}
+      {{- $oidc := dict }}
+      {{- with index $oidcValues "auth-server-url" }}{{ $_ := set $oidc "auth-server-url" . }}{{ end }}
+      {{- with index $oidcValues "client-id" }}{{ $_ := set $oidc "client-id" . }}{{ end }}
+      {{- $credentials := dict }}
+      {{- if or $oidcCredentials.secret $oidcCredentials.existingSecret }}
+        {{- $_ := set $credentials "secret" "${QUARKUS_OIDC_CREDENTIALS_SECRET}" }}
+        {{- $_ := set $oidc "credentials" $credentials }}
+      {{- end }}
+      {{- with $oidcValues.authentication }}{{ $_ := set $oidc "authentication" . }}{{ end }}
+      {{- with $oidcValues.roles }}{{ $_ := set $oidc "roles" . }}{{ end }}
+      {{- $_ := set $config "quarkus" (dict "oidc" $oidc) }}
+      {{- if $security.auth }}
+        {{- $_ := set $config "auth" $security.auth }}
+      {{- end }}
+    {{- end }}
 
     {{- $merged := mergeOverwrite $config .Values.configOverrides }}
     {{- if ne $merged.persistence.backend.mode $mode }}

@@ -32,6 +32,41 @@ These are optional settings, if left out the app's defaults apply.
 * `compaction`: how sampled metrics are folded (`persistence.compaction` in the app): `cron` (default `"0 1 * * * ?"`), `window` (default `"1h"`) and `delay` (default `"1m"`).
 * `ui.maxDateRange`: `{ duration: number, unit: "DAYS" | "MONTHS" | "YEARS" }` specifying the maximum date range queryable in the dashboard UI (default `{ duration: 1, unit: "YEARS" }`).
 
+### OIDC Authentication
+
+Set `security.enabled` to enable Wombat's `prod,oidc` profile. Pulumi writes the Quarkus settings to `quarkus.oidc` and Wombat access rules to the top-level `auth` section. The client secret is stored in a Kubernetes Secret; mark it as a Pulumi secret:
+
+```yaml
+security:
+  enabled: true
+  oidc:
+    authServerUrl: https://idp.example.com
+    clientId: wombat
+    # Set exactly one: clientSecret or existingSecret.
+    clientSecret: CHANGE_ME
+    # existingSecret: wombat-oidc-client
+    authentication:
+      scopes: [email, profile]
+      userInfoRequired: true
+      extraParams:
+        prompt: select_account
+  auth:
+    allowedEmailDomains: [example.com]
+    emailClaim: email
+    requireVerifiedEmail: true
+    displayNameClaims: [email, name, preferred_username]
+    idpLogout: true
+    roles:
+      admin: [wombat-admins]
+      user: [wombat-users]
+```
+
+```bash
+pulumi config set --secret --path 'service.security.oidc.clientSecret' <client-secret>
+```
+
+Alternatively, set `security.oidc.existingSecret` to the name of a Kubernetes Secret in the same namespace. It must contain a `client-secret` key; Pulumi will reference it without creating or managing that Secret. Restart the Wombat pod after rotating the existing Secret because Kubernetes does not refresh environment variables in running containers.
+
 ### Provisioned Environments (optional)
 
 `monitoredEnvironments` is optional. Without it, Wombat starts with no environment, and they are created from its dashboard or its API. With it, the environments it declares are provisioned at every startup: kept in sync with your stack, and read-only in the app. See [environments and provisioning](https://github.com/illuin-tech/wombat/blob/master/doc/provisioning.md).

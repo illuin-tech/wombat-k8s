@@ -146,6 +146,32 @@ compaction: {}
 #  window: 1h
 #  delay: 1m
 
+security:
+  enabled: false
+  oidc: {}
+  auth: {}
+# Example:
+# security:
+#   enabled: true
+#   oidc:
+#     auth-server-url: https://idp.example.com
+#     client-id: wombat
+#     credentials:
+#       # Set exactly one of secret or existingSecret.
+#       secret: CHANGEME
+#       existingSecret: ""
+#     authentication:
+#       user-info-required: true
+#   auth:
+#     allowed-email-domains: [example.com]
+#     email-claim: email
+#     require-verified-email: true
+#     display-name-claims: [email, name, preferred_username]
+#     idp-logout: true
+#     roles:
+#       admin: [wombat-admins]
+#       user: [wombat-users]
+
 # Dynamic extensions storage
 extensions:
   enabled: false
