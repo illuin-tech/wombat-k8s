@@ -41,7 +41,7 @@ npm ci
 npm run build
 ```
 
-For full details on configuration options (monitoring, secrets, persistence, ingress), see [`pulumi/README.md`](pulumi/README.md).
+For full details on configuration options (monitoring, secrets, persistence, authentication, ingress), see [`pulumi/README.md`](pulumi/README.md).
 
 
 ## Helm Chart
@@ -74,7 +74,7 @@ helm lint helm/wombat
 helm install wombat ./helm/wombat -f my-values.yaml
 ```
 
-For full details on configuration options (monitoring, secrets, persistence, ingress), see [`helm/README.md`](helm/README.md).
+For full details on configuration options (monitoring, secrets, persistence, authentication, ingress), see [`helm/README.md`](helm/README.md).
 
 ## License
 

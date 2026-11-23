@@ -120,6 +120,49 @@ configOverrides:
 
 Keep `${POSTGRESQL_PASSWORD}` as written in the example. The chart reads the password from the referenced Secret; do not put the actual password in `configOverrides`. Restart the Wombat Deployment after rotating the password. Use a compatible Wombat image, such as `0.20.0`.
 
+### OIDC Authentication
+
+`security` turns on the app's `oidc` profile (see [access control](https://github.com/illuin-tech/wombat/blob/master/doc/access-control.md)). Its keys are camelCase, written kebab-case to `quarkus.oidc` and `auth` in `application.yaml`.
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `security.enabled` | Turn on the app's `oidc` profile | `false` |
+| `security.oidc.authServerUrl` | OIDC issuer URL | Required when enabled |
+| `security.oidc.clientId` | OIDC client ID | Required when enabled |
+| `security.oidc.credentials.secret` | OIDC client secret, kept in a Secret the chart creates | Required when enabled |
+| `security.oidc.authentication.scopes` | Scopes requested during sign-in | `[email, profile]` |
+| `security.oidc.authentication.userInfoRequired` | Call the provider's UserInfo endpoint | App default |
+| `security.oidc.authentication.extraParams` | Extra parameters of the authorization request | App default |
+| `security.oidc.roles.roleClaimPath` | Claim holding the provider's roles, e.g. `realm_access/roles` for Keycloak | App default |
+| `security.oidc.roles.source` | Token holding that claim, e.g. `accesstoken` | App default |
+| `security.auth.roles.admin` | Provider roles or groups, emails, or `"*"` granting the Wombat `admin` role | Required when enabled |
+| `security.auth.roles.user` | Same, for the `user` role | App default |
+| `security.auth.roles.apiKeyManager` | Same, for the `api-key-manager` role | App default |
+| `security.auth.allowedEmailDomains` | Only let in users with an email of these domains | App default |
+| `security.auth.emailClaim` | Claim holding the user's email | `email` |
+| `security.auth.requireVerifiedEmail` | Ignore emails the provider doesn't flag as verified | `true` |
+| `security.auth.displayNameClaims` | Claims tried in order to display the user | `[email, name, preferred_username]` |
+| `security.auth.idpLogout` | Also end the provider's session on logout | `true` |
+| `security.auth.apiKeys.maxLifetime` | Longest lifetime of an API key | `365d` |
+| `security.auth.apiKeys.allowNeverExpiring` | Allow API keys that never expire | `false` |
+
+```yaml
+security:
+  enabled: true
+  oidc:
+    authServerUrl: https://idp.example.com
+    clientId: wombat
+    credentials:
+      secret: CHANGE_ME
+    authentication:
+      userInfoRequired: true
+  auth:
+    allowedEmailDomains: [example.com]
+    roles:
+      admin: [wombat-admins]
+      user: [wombat-users]
+```
+
 ### Dependencies (BoaviztAPI & Ecologits)
 
 | Parameter | Description | Default |

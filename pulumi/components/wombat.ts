@@ -17,6 +17,7 @@ export class WombatResource extends pulumi.ComponentResource {
         super(`illuin:wombat:service-${args.environment}`, name, {
             ...args,
             config: pulumi.secret(args.config),
+            security: pulumi.secret(args.security),
             persistence: pulumi.secret(args.persistence),
         }, opts);
 

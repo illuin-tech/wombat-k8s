@@ -87,3 +87,35 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+Turns on the app's oidc profile and passes it the client secret, validated in configmap-override.yaml
+*/}}
+{{- define "wombat.oidcEnv" -}}
+{{- if .Values.security.enabled }}
+- name: QUARKUS_PROFILE
+  value: "prod,oidc"
+- name: QUARKUS_OIDC_CREDENTIALS_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "wombat.fullname" . }}-oidc
+      key: client-secret
+{{- end }}
+{{- end }}
+
+{{/*
+Turns the camelCase keys of a map into the kebab-case keys of application.yaml, recursively, as Pulumi's kebabize does.
+Returns YAML: pipe it into fromYaml.
+*/}}
+{{- define "wombat.kebabize" -}}
+{{- $kebab := dict }}
+{{- range $key, $value := . }}
+{{- $name := regexReplaceAll "([a-z])([A-Z])" $key "${1}-${2}" | lower }}
+{{- if kindIs "map" $value }}
+{{- $_ := set $kebab $name (include "wombat.kebabize" $value | fromYaml) }}
+{{- else }}
+{{- $_ := set $kebab $name $value }}
+{{- end }}
+{{- end }}
+{{- toYaml $kebab }}
+{{- end }}

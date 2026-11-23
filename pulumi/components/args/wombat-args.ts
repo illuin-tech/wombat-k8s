@@ -9,6 +9,7 @@ import {IngressArgs} from "./k8s-args";
 import {CompactionConfig, PersistenceProfile} from "./persistence-args";
 import {WombatDependencyConfig} from "./dependencies-args";
 import {ExtensionsConfig} from "./extensions-args";
+import {SecurityConfig} from "./security-args";
 import * as inputs from "@pulumi/kubernetes/types/input";
 
 export interface UiConfig {
@@ -23,6 +24,8 @@ export interface AppConfig {
     wombat: WombatConfig;
     persistence?: { [key: string]: any; }
     ui?: { [key: string]: any; }
+    auth?: { [key: string]: any; }
+    quarkus?: { [key: string]: any; }
 }
 
 export interface AppConfigCompiler {
@@ -38,6 +41,8 @@ export interface WombatArgs {
     namespace: pulumi.Input<string>;
     environment: pulumi.Input<string>;
     config: WombatConfig;
+    /** Optional: without it, the app runs without authentication. */
+    security?: SecurityConfig;
     secrets?: SecretsConfig;
     /** Optional: environments can be created from the app instead. Without it, nothing is provisioned. */
     monitoredEnvironments?: {

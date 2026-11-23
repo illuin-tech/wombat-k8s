@@ -113,9 +113,33 @@ data:
       {{- $_ := set $config "wombat" $wombat }}
     {{- end }}
 
+    {{- $security := .Values.security }}
+    {{- if $security.enabled }}
+      {{- $oidc := include "wombat.kebabize" $security.oidc | fromYaml }}
+      {{- /* The client secret is kept in the -oidc Secret, and comes from the env var set on the workload */}}
+      {{- $credentials := $oidc.credentials | default dict }}
+      {{- $_ := set $credentials "secret" "${QUARKUS_OIDC_CREDENTIALS_SECRET}" }}
+      {{- $_ := set $oidc "credentials" $credentials }}
+      {{- $_ := set $config "quarkus" (dict "oidc" $oidc) }}
+      {{- $_ := set $config "auth" (include "wombat.kebabize" $security.auth | fromYaml) }}
+    {{- end }}
 
     {{- $merged := mergeOverwrite $config .Values.configOverrides }}
     {{- if ne $merged.persistence.backend.mode $mode }}
       {{- fail "configOverrides.persistence.backend.mode must match persistence.type" }}
+    {{- end }}
+    {{- if $security.enabled }}
+      {{- if not (index $merged.quarkus.oidc "auth-server-url") }}
+        {{- fail "security.oidc.authServerUrl is required when security.enabled is true" }}
+      {{- end }}
+      {{- if not (index $merged.quarkus.oidc "client-id") }}
+        {{- fail "security.oidc.clientId is required when security.enabled is true" }}
+      {{- end }}
+      {{- if not ($security.oidc.credentials | default dict).secret }}
+        {{- fail "security.oidc.credentials.secret is required when security.enabled is true" }}
+      {{- end }}
+      {{- if not (dig "roles" "admin" "" $merged.auth) }}
+        {{- fail "security.auth.roles.admin is required when security.enabled is true, or nobody can administer Wombat" }}
+      {{- end }}
     {{- end }}
     {{- toYaml $merged | nindent 4 }}
