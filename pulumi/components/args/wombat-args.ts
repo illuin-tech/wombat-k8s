@@ -63,6 +63,8 @@ export interface WombatArgs {
         pullSecret?: PullSecretConfig;
     };
     ingress?: IngressArgs;
+    /** An existing ServiceAccount for the pod, e.g. the one a Vault `kubernetes` role is bound to. `default` otherwise. */
+    serviceAccountName?: pulumi.Input<string>;
     resources?: k8s.types.input.core.v1.ResourceRequirements;
     jvmOptions?: JVMOptions;
 }

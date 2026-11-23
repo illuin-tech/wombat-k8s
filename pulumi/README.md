@@ -90,9 +90,10 @@ They are compiled into a `/monitored/monitored-environments.yaml` file mounted i
 
 ### Secrets
 
-`secrets` holds the secret backends the app resolves secret keys from. An asset references its credentials by key, such as a `tech.illuin.wombat-module.kubernetes-api` asset's `kubeconfigKey`. Each backend is optional. See [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md).
+`secrets` holds the secret backends the app resolves secret keys from. An asset references its credentials by key, such as a `tech.illuin.wombat-module.kubernetes-api` asset's `kubeconfigKey`. Each backend is optional. The app looks a key up in the writer first, if any, then Vault, then the files, as described in [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md). The component supports files, Vault and the database; not the app's keystore or environment resolvers. `secrets.vault` and `secrets.cache` need a Wombat release after `0.24.0`.
 
-#### Provisioned Secrets
+#### Files
+
 `secrets.provisioned` maps keys to values, each set as a Pulumi secret:
 
 ```bash
@@ -102,6 +103,60 @@ pulumi config set --secret --path 'service.secrets.provisioned.kubeconfig-my-clu
 They are compiled into a Kubernetes `Secret`, mounted at `/secrets` as the app's directory secret resolver (`wombat.secret.directory.path`): a read-only backend, with one file per key. A key is made of letters, digits, `-` and `_`, the app's secret key format, and the deployment fails on any other.
 
 Kubeconfigs are provisioned secrets too. An asset, provisioned or created in the app, names its kubeconfig in `kubeconfigKey`. The kubeconfig must inline its certificates and keys (`certificate-authority-data`, `client-certificate-data`, `client-key-data`): the app reads it in memory, with no file to resolve a relative path against.
+
+`secrets.existingSecrets` adds Secrets created outside the stack, e.g. by the External Secrets Operator or Sealed Secrets, to the same directory. Each of their keys becomes a secret, so name the keys in the app's key format: the component cannot check them. Don't use a key twice across these Secrets and `secrets.provisioned`. A Secret updated in place reaches the app within the kubelet's sync period, plus the cache TTL.
+
+#### Writer
+
+`secrets.writeMode` picks the backend behind the app's secret-management API (`/api/secrets`), which also comes first when resolving a key: `database` or `vault`. With `disabled`, the default, secrets are only read.
+
+> ⚠️ The API lists, writes and deletes secrets. Turn on `security` with it: without authentication, anyone who reaches the service can use it.
+
+#### Database
+
+With `secrets.writeMode: database`, the app stores the secrets written through its API in its own database, encrypted with key-encryption keys (KEKs).
+
+* `secrets.database.kek`: the KEKs by id, each Base64 for 32 random bytes (e.g. from `openssl rand -base64 32`), as Pulumi secrets. An id is made of lowercase letters, digits and `-`. They are written to the `application.yaml` override, itself a Secret.
+* `secrets.database.activeKekId`: the one new writes use.
+
+```bash
+pulumi config set --path 'service.secrets.writeMode' database
+pulumi config set --path 'service.secrets.database.activeKekId' current
+pulumi config set --secret --path 'service.secrets.database.kek.current' "$(openssl rand -base64 32)"
+```
+
+To rotate a KEK, add the new one, switch `activeKekId`, then follow the app's [KEK rotation](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md#kek-rotation-and-backups) steps before removing the old one. With `SQLITE_TRANSIENT` persistence, the database lives in memory: the secrets written through the API are lost on every restart.
+
+#### Vault
+
+`secrets.vault.enabled` makes the app resolve keys from a HashiCorp Vault KV v2 mount, under `secrets.vault.pathPrefix` (the app's default: `wombat`). It is read-only, unless `secrets.writeMode` is `vault`: then Vault is also the writer.
+
+* `secrets.vault.client`: written to `quarkus.vault`, see the [Quarkus Vault configuration](https://docs.quarkiverse.io/quarkus-vault/dev/index.html). It requires `url` and exactly one `authentication` method:
+  * `kubernetes`, recommended in a cluster: Vault trusts the pod's ServiceAccount, with no credential to manage. Bind the Vault `role` to the account set in `serviceAccountName`, or to `default`.
+  * `appRole`, with `roleId` and `secretId`.
+  * `clientToken`.
+
+  `appRole.secretId` and `clientToken` are Pulumi secrets, written to the `application.yaml` override, itself a Secret.
+* `secrets.vault.caCert`: the PEM of the CA that signs Vault's certificate. It is mounted, and set as `client.tls.caCert`. Without it, `kubernetes` authentication checks Vault's certificate against the cluster's CA: for a Vault behind another CA, set `caCert`, or `client.tls.useKubernetesCaCert: false` for a public one.
+
+```yaml
+serviceAccountName: wombat
+secrets:
+  vault:
+    enabled: true
+    client:
+      url: https://vault.example.com
+      kvSecretEngineMountPath: secret
+      authentication:
+        kubernetes:
+          role: wombat
+```
+
+The Vault policies each mode needs are in the app's [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md#vault-backed-secretresolver) documentation.
+
+#### Cache
+
+The app keeps a resolved secret in memory for `secrets.cache.ttl` (its default: `10m`), so a rotated file or a value changed in Vault is seen within that time. A write through the API applies at once. `0` disables the cache.
 
 ### Extensions
 
@@ -150,6 +205,7 @@ pulumi config set --secret --path 'service.persistence.backup.s3.secretKey' <sec
 
 * `container.imageVersion`: the `wombat` image tag to deploy.
 * `container.pullSecret`: optional; GAR/GCR service account JSON (as a secret) for pulling the image from a private registry.
+* `serviceAccountName`: optional; an existing ServiceAccount for the pod, e.g. the one a Vault `kubernetes` role is bound to. The namespace's `default` otherwise.
 * `resources`: K8S `resources.limits` and `resources.requests` for the container.
 * `jvmOptions`: JVM options such as `xms: 512M`, `xmx: 512M`.
 * `ingress`: optional; set `className`, `host`, `path`, `pathType`, `annotations`, and `tlsSecretName` to expose the service through an `Ingress`.

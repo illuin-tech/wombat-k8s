@@ -232,11 +232,25 @@ security:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `secrets.provisioned` | Map of secret keys to values, mounted in `/secrets` as the app's directory secret resolver | `{}` |
+| `secrets.existingSecrets` | Existing Secrets of the namespace, mounted in `/secrets` next to the provisioned ones | `[]` |
+| `secrets.writeMode` | The backend behind the app's `/api/secrets`: `disabled`, `database` or `vault` | `disabled` |
+| `secrets.database.activeKekId` | The key-encryption key new writes use, one of the ids of `secrets.database.kek` | `""` |
+| `secrets.database.kek` | Key-encryption keys by id, Base64 for 32 bytes, kept in a Secret the chart creates | `{}` |
+| `secrets.database.existingSecret` | Existing Secret holding each key-encryption key under its id | `""` |
+| `secrets.vault.enabled` | Resolve secrets from HashiCorp Vault KV v2, read-only unless `secrets.writeMode` is `vault` | `false` |
+| `secrets.vault.pathPrefix` | Where Wombat's keys sit in the KV mount (the app's default: `wombat`) | `""` |
+| `secrets.vault.caCert` | The CA that signs Vault's certificate, in PEM | `""` |
+| `secrets.vault.client` | The Vault client, written to `quarkus.vault`, camelCase | `{}` |
+| `secrets.cache.ttl` | How long a resolved secret is kept in memory (the app's default: `10m`), `0` disables the cache | `""` |
 | `configOverrides` | Arbitrary YAML map merged directly into `application.yaml` | `{}` |
 
-`secrets` holds the secret backends the app resolves secret keys from. An asset references its credentials by key, such as a `tech.illuin.wombat-module.kubernetes-api` asset's `kubeconfig-key`. Each backend is optional. See [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md).
+`secrets` holds the secret backends the app resolves secret keys from. An asset references its credentials by key, such as a `tech.illuin.wombat-module.kubernetes-api` asset's `kubeconfig-key`. Each backend is optional. The app looks a key up in the writer first, if any, then Vault, then the files, as described in [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md). The chart supports files, Vault and the database; not the app's keystore or environment resolvers. `secrets.vault` and `secrets.cache` need a Wombat release after `0.24.0`.
+
+#### Files
 
 `secrets.provisioned` is compiled into a Kubernetes `Secret`, mounted at `/secrets` as the app's directory secret resolver (`wombat.secret.directory.path`): a read-only backend, with one file per key. A key is made of letters, digits, `-` and `_`, the app's secret key format, and the chart fails on any other.
+
+`secrets.existingSecrets` adds Secrets created outside the chart, e.g. by the External Secrets Operator or Sealed Secrets, to the same directory. Each of their keys becomes a secret, so name the keys in the app's key format: the chart cannot check them. Don't use a key twice across these Secrets and `secrets.provisioned`. A Secret updated in place reaches the app within the kubelet's sync period, plus the cache TTL.
 
 Kubeconfigs are provisioned secrets too. An asset, provisioned or created in the app, names its kubeconfig in `kubeconfig-key`. The kubeconfig must inline its certificates and keys (`certificate-authority-data`, `client-certificate-data`, `client-key-data`): the app reads it in memory, with no file to resolve a relative path against.
 
@@ -244,6 +258,57 @@ Kubeconfigs are provisioned secrets too. An asset, provisioned or created in the
 helm install wombat oci://registry-1.docker.io/illuin/wombat-chart --version <version> -f my-values.yaml \
   --set-file secrets.provisioned.kubeconfig-my-cluster=/path/to/kubeconfig
 ```
+
+#### Writer
+
+`secrets.writeMode` picks the backend behind the app's secret-management API (`/api/secrets`), which also comes first when resolving a key: `database` or `vault`. With `disabled`, the default, secrets are only read.
+
+> ⚠️ The API lists, writes and deletes secrets. Turn on `security` with it: without authentication, anyone who reaches the service can use it. The chart prints a warning after install when `security` is off.
+
+#### Database
+
+With `secrets.writeMode: database`, the app stores the secrets written through its API in its own database, encrypted with key-encryption keys (KEKs). Each KEK is Base64 for 32 random bytes, e.g. from `openssl rand -base64 32`, under an id made of lowercase letters, digits and `-`. `secrets.database.activeKekId` names the one new writes use. The chart keeps the KEKs in a Secret, and passes each one to the app as `WOMBAT_SECRET_DATABASE_KEK_<ID>`.
+
+```bash
+helm install wombat ... --set secrets.writeMode=database \
+  --set secrets.database.activeKekId=current \
+  --set secrets.database.kek.current="$(openssl rand -base64 32)"
+```
+
+To keep the KEKs in an existing Secret instead, store each one under its id, set `secrets.database.existingSecret`, and list the ids in `secrets.database.kek` with empty values. To rotate a KEK, add the new one, switch `activeKekId`, then follow the app's [KEK rotation](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md#kek-rotation-and-backups) steps before removing the old one.
+
+With `SQLITE_TRANSIENT` persistence, the database lives in memory: the secrets written through the API are lost on every restart.
+
+#### Vault
+
+`secrets.vault.enabled` makes the app resolve keys from a HashiCorp Vault KV v2 mount, under `secrets.vault.pathPrefix`. It is read-only, unless `secrets.writeMode` is `vault`: then Vault is also the writer.
+
+`secrets.vault.client` is written to `quarkus.vault`, in camelCase: see the [Quarkus Vault configuration](https://docs.quarkiverse.io/quarkus-vault/dev/index.html). It requires `url` and exactly one `authentication` method:
+- `kubernetes`, recommended in a cluster: Vault trusts the pod's ServiceAccount, with no credential to manage. Bind the Vault `role` to the ServiceAccount set in `serviceAccount`.
+- `appRole`, with `roleId` and `secretId`.
+- `clientToken`.
+
+The chart keeps `appRole.secretId` and `clientToken` in a Secret, and passes them to the app through env vars. `secrets.vault.caCert` takes the PEM of the CA that signs Vault's certificate: the chart mounts it and sets `client.tls.caCert`. Without `caCert`, `kubernetes` authentication checks Vault's certificate against the cluster's CA: for a Vault behind another CA, set `caCert`, or `client.tls.useKubernetesCaCert: false` for a public one.
+
+```yaml
+serviceAccount:
+  name: wombat
+secrets:
+  vault:
+    enabled: true
+    client:
+      url: https://vault.example.com
+      kvSecretEngineMountPath: secret
+      authentication:
+        kubernetes:
+          role: wombat
+```
+
+The Vault policies each mode needs are in the app's [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md#vault-backed-secretresolver) documentation.
+
+#### Cache
+
+The app keeps a resolved secret in memory for `secrets.cache.ttl` (its default: `10m`), so a rotated file or a value changed in Vault is seen within that time. A write through the API applies at once. `0` disables the cache.
 
 ### Provisioned Environments (optional)
 

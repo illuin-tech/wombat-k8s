@@ -17,6 +17,9 @@ spec:
         checksum/config-override: {{ include (print $.Template.BasePath "/configmap-override.yaml") . | sha256sum }}
         checksum/config-monitored: {{ include (print $.Template.BasePath "/configmap-monitored.yaml") . | sha256sum }}
         checksum/oidc-secret: {{ include (print $.Template.BasePath "/secret-oidc.yaml") . | sha256sum }}
+        checksum/kek-secret: {{ include (print $.Template.BasePath "/secret-kek.yaml") . | sha256sum }}
+        checksum/vault-secret: {{ include (print $.Template.BasePath "/secret-vault.yaml") . | sha256sum }}
+        checksum/vault-ca: {{ include (print $.Template.BasePath "/configmap-vault-ca.yaml") . | sha256sum }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -52,6 +55,7 @@ spec:
             - name: WOMBAT_MONITOR_ENVIRONMENTS_FILE
               value: /monitored/monitored-environments.yaml
             {{- include "wombat.oidcEnv" . | nindent 12 }}
+            {{- with include "wombat.secretsEnv" . }}{{ . | trim | nindent 12 }}{{ end }}
             {{- if and .Values.persistence.backup.enabled (or .Values.persistence.backup.s3.existingSecret .Values.persistence.backup.s3.accessKey) }}
             - name: WOMBAT_BACKUP_S3_ACCESS_KEY
               valueFrom:
@@ -74,10 +78,7 @@ spec:
               mountPath: /deployments/config
             - name: conf-monitored
               mountPath: /monitored
-            {{- if .Values.secrets.provisioned }}
-            - name: secrets
-              mountPath: /secrets
-            {{- end }}
+            {{- with include "wombat.secretsVolumeMounts" . }}{{ . | trim | nindent 12 }}{{ end }}
             {{- if .Values.extensions.enabled }}
             - name: extensions
               mountPath: {{ .Values.extensions.mountPath | default "/extensions" }}
@@ -126,11 +127,7 @@ spec:
         - name: conf-monitored
           configMap:
             name: {{ include "wombat.fullname" . }}-monitored
-        {{- if .Values.secrets.provisioned }}
-        - name: secrets
-          secret:
-            secretName: {{ include "wombat.fullname" . }}-secrets
-        {{- end }}
+        {{- with include "wombat.secretsVolumes" . }}{{ . | trim | nindent 8 }}{{ end }}
         {{- if .Values.extensions.enabled }}
         - name: extensions
           persistentVolumeClaim:
