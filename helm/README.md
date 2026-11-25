@@ -205,6 +205,10 @@ security:
 | `dependencies.ecologits.port` | Sidecar container listening port | `5002` |
 | `dependencies.ecologits.resources` | Resource limits and requests for Ecologits sidecar | Limits: 500m / 512Mi |
 
+The sidecar or the endpoint becomes the `uri` setting of the Boavizta or Ecologits module, under
+`wombat.module.settings."tech.illuin.wombat-module.boavizta"` and its Ecologits equivalent. Give the modules other
+settings, such as a `proxy-url`, through `configOverrides.wombat.module.settings`.
+
 ### Application Configuration
 
 | Parameter | Description | Default |
@@ -244,7 +248,7 @@ security:
 | `secrets.cache.ttl` | How long a resolved secret is kept in memory (the app's default: `10m`), `0` disables the cache | `""` |
 | `configOverrides` | Arbitrary YAML map merged directly into `application.yaml` | `{}` |
 
-`secrets` holds the secret backends the app resolves secret keys from. An asset references its credentials by key, such as a `tech.illuin.wombat-module.kubernetes-api` asset's `kubeconfig-key`. Each backend is optional. The app looks a key up in the writer first, if any, then Vault, then the files, as described in [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md). The chart supports files, Vault and the database; not the app's keystore or environment resolvers. `secrets.vault` and `secrets.cache` need a Wombat release after `0.24.0`.
+`secrets` holds the secret backends the app resolves secret keys from. An asset references its credentials by key, such as a `tech.illuin.wombat-module.kubernetes-api` asset's `kubeconfig-key`. Each backend is optional. The app looks a key up in the writer first, if any, then Vault, then the files, as described in [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md). The chart supports files, Vault and the database; not the app's keystore or environment resolvers.
 
 #### Files
 

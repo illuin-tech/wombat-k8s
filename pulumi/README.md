@@ -90,7 +90,7 @@ They are compiled into a `/monitored/monitored-environments.yaml` file mounted i
 
 ### Secrets
 
-`secrets` holds the secret backends the app resolves secret keys from. An asset references its credentials by key, such as a `tech.illuin.wombat-module.kubernetes-api` asset's `kubeconfigKey`. Each backend is optional. The app looks a key up in the writer first, if any, then Vault, then the files, as described in [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md). The component supports files, Vault and the database; not the app's keystore or environment resolvers. `secrets.vault` and `secrets.cache` need a Wombat release after `0.24.0`.
+`secrets` holds the secret backends the app resolves secret keys from. An asset references its credentials by key, such as a `tech.illuin.wombat-module.kubernetes-api` asset's `kubeconfigKey`. Each backend is optional. The app looks a key up in the writer first, if any, then Vault, then the files, as described in [secret management](https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md). The component supports files, Vault and the database; not the app's keystore or environment resolvers.
 
 #### Files
 
@@ -173,7 +173,9 @@ Wombat can use either container sidecars or external endpoints for BoaviztAPI an
 * `dependencies.boaviztapi`: `CONTAINER` (defaults to sidecar with BoaviztAPI `2.4.1`) or `EXTERNAL` with `endpoint`.
 * `dependencies.ecologits`: `CONTAINER` (defaults to sidecar with Ecologits `0.0.2`) or `EXTERNAL` with `endpoint`.
 
-These are automatically mapped to `connector.boavizta.uri` and `connector.ecologits.uri` in the container configuration.
+These are automatically mapped to the `uri` settings of the Boavizta and Ecologits modules in the container configuration,
+`wombat.module.settings."tech.illuin.wombat-module.boavizta".uri` and its Ecologits equivalent. Give the modules other
+settings, such as a `proxy-url`, through `config.module.settings`.
 
 ### Persistence
 
