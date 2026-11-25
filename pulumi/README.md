@@ -174,7 +174,8 @@ Wombat can use either container sidecars or external endpoints for BoaviztAPI an
 * `dependencies.ecologits`: `CONTAINER` (defaults to sidecar with Ecologits `0.0.2`) or `EXTERNAL` with `endpoint`.
 
 These are automatically mapped to the `uri` settings of the Boavizta and Ecologits modules in the container configuration,
-`wombat.module.settings."tech.illuin.wombat-module.boavizta".uri` and its Ecologits equivalent. Give the modules other
+`wombat.module.settings."tech.illuin.wombat-module.boavizta".uri` and its Ecologits equivalent, which Wombat reads from
+`0.27.0`. Give the modules other
 settings, such as a `proxy-url`, through `config.module.settings`.
 
 ### Persistence
