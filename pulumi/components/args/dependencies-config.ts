@@ -4,31 +4,36 @@ import {ContainerDependency, DependencyMode, ExternalDependency, WombatDependenc
 
 const BOAVIZTAPI_PORT: number = 5001;
 const ECOLOGITS_PORT: number = 5002;
+/** The app reads the settings of a module under its full name */
+const BOAVIZTA_MODULE: string = "tech.illuin.wombat-module.boavizta";
+const ECOLOGITS_MODULE: string = "tech.illuin.wombat-module.ecologits";
 
 /**
  * Tweaks the Quarkus application configuration based on the WombatDependencyConfig.
  */
 export class DependenciesConfigCompiler implements AppConfigCompiler {
     compile(config: AppConfig, args: WombatArgs): AppPackage {
-        config.wombat.connector = config.wombat.connector || {};
+        config.wombat.module = config.wombat.module || {};
+        config.wombat.module.settings = config.wombat.module.settings || {};
+        const settings = config.wombat.module.settings;
 
-        config.wombat.connector.boavizta = config.wombat.connector.boavizta || {};
+        settings[BOAVIZTA_MODULE] = settings[BOAVIZTA_MODULE] || {};
         switch (args.dependencies.boaviztapi.type) {
             case DependencyMode.EXTERNAL:
-                config.wombat.connector.boavizta.uri = (args.dependencies.boaviztapi as ExternalDependency).endpoint;
+                settings[BOAVIZTA_MODULE].uri = (args.dependencies.boaviztapi as ExternalDependency).endpoint;
                 break;
             case DependencyMode.CONTAINER:
-                config.wombat.connector.boavizta.uri = `http://localhost:${BOAVIZTAPI_PORT}/v1/`;
+                settings[BOAVIZTA_MODULE].uri = `http://localhost:${BOAVIZTAPI_PORT}/v1/`;
                 break;
         }
 
-        config.wombat.connector.ecologits = config.wombat.connector.ecologits || {};
+        settings[ECOLOGITS_MODULE] = settings[ECOLOGITS_MODULE] || {};
         switch (args.dependencies.ecologits.type) {
             case DependencyMode.EXTERNAL:
-                config.wombat.connector.ecologits.uri = (args.dependencies.ecologits as ExternalDependency).endpoint;
+                settings[ECOLOGITS_MODULE].uri = (args.dependencies.ecologits as ExternalDependency).endpoint;
                 break;
             case DependencyMode.CONTAINER:
-                config.wombat.connector.ecologits.uri = `http://localhost:${ECOLOGITS_PORT}/`;
+                settings[ECOLOGITS_MODULE].uri = `http://localhost:${ECOLOGITS_PORT}/`;
                 break;
         }
 

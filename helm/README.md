@@ -205,6 +205,10 @@ security:
 | `dependencies.ecologits.port` | Sidecar container listening port | `5002` |
 | `dependencies.ecologits.resources` | Resource limits and requests for Ecologits sidecar | Limits: 500m / 512Mi |
 
+The sidecar or the endpoint becomes the `uri` setting of the Boavizta or Ecologits module, under
+`wombat.module.settings."tech.illuin.wombat-module.boavizta"` and its Ecologits equivalent. Give the modules other
+settings, such as a `proxy-url`, through `configOverrides.wombat.module.settings`.
+
 ### Application Configuration
 
 | Parameter | Description | Default |

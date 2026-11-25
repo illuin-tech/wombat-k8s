@@ -92,20 +92,21 @@ data:
       {{- $_ := set $wombat "worker" (dict "id" .Values.worker.id "aggregator" $aggregator) }}
     {{- end }}
 
-    {{- $connector := dict }}
+    {{- /* The app reads the settings of a module under its full name */}}
+    {{- $settings := dict }}
     {{- if eq .Values.dependencies.boaviztapi.type "CONTAINER" }}
-      {{- $_ := set $connector "boavizta" (dict "uri" "http://localhost:5001/v1/") }}
+      {{- $_ := set $settings "tech.illuin.wombat-module.boavizta" (dict "uri" "http://localhost:5001/v1/") }}
     {{- else if .Values.dependencies.boaviztapi.endpoint }}
-      {{- $_ := set $connector "boavizta" (dict "uri" .Values.dependencies.boaviztapi.endpoint) }}
+      {{- $_ := set $settings "tech.illuin.wombat-module.boavizta" (dict "uri" .Values.dependencies.boaviztapi.endpoint) }}
     {{- end }}
 
     {{- if eq .Values.dependencies.ecologits.type "CONTAINER" }}
-      {{- $_ := set $connector "ecologits" (dict "uri" "http://localhost:5002/") }}
+      {{- $_ := set $settings "tech.illuin.wombat-module.ecologits" (dict "uri" "http://localhost:5002/") }}
     {{- else if .Values.dependencies.ecologits.endpoint }}
-      {{- $_ := set $connector "ecologits" (dict "uri" .Values.dependencies.ecologits.endpoint) }}
+      {{- $_ := set $settings "tech.illuin.wombat-module.ecologits" (dict "uri" .Values.dependencies.ecologits.endpoint) }}
     {{- end }}
-    {{- if $connector }}
-      {{- $_ := set $wombat "connector" $connector }}
+    {{- if $settings }}
+      {{- $_ := set $wombat "module" (dict "settings" $settings) }}
     {{- end }}
 
     {{- if .Values.config }}
@@ -214,7 +215,7 @@ data:
     {{- end }}
 
     {{- if .Values.extensions.enabled }}
-      {{- $module := dict }}
+      {{- $module := $wombat.module | default dict }}
       {{- $_ := set $module "extension" (dict "path" (.Values.extensions.mountPath | default "/extensions")) }}
       {{- $_ := set $wombat "module" $module }}
     {{- end }}
