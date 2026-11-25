@@ -32,10 +32,29 @@ compaction:
   window: "1h"
   delay: "1m"
 
-# Optional: secrets set with the deployment, mounted under /secrets as the app's directory secret resolver
+# Optional: the secret backends the app resolves secret keys from
 #secrets:
+#  # Secrets set with the deployment, mounted under /secrets as the app's directory secret resolver
 #  provisioned:
 #    kubeconfig-my-cluster: CHANGEME  # the kubeconfig referenced by the kubernetes-api asset below
+#  # Existing Secrets of the namespace, mounted next to them
+#  existingSecrets: [my-external-secrets]
+#  # The backend behind /api/secrets: turn on security with it
+#  writeMode: database
+#  database:
+#    activeKekId: current
+#    kek:
+#      current: CHANGEME  # openssl rand -base64 32
+#  # Vault, read-only unless writeMode is vault
+#  vault:
+#    enabled: true
+#    client:
+#      url: https://vault.example.com
+#      authentication:
+#        kubernetes:
+#          role: wombat  # bound to the pod's ServiceAccount
+#  cache:
+#    ttl: 10m
 
 # To enable OIDC authentication:
 #security:

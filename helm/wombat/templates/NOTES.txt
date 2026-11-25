@@ -1,0 +1,4 @@
+{{- $writeMode := .Values.secrets.writeMode | default "disabled" }}
+{{- if and (ne $writeMode "disabled") (not .Values.security.enabled) }}
+WARNING: secrets.writeMode is {{ $writeMode }} while security is disabled: anyone who reaches the service can list, write and delete secrets.
+{{- end }}

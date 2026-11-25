@@ -104,6 +104,77 @@ Turns on the app's oidc profile and passes it the client secret, validated in co
 {{- end }}
 
 {{/*
+Passes the app the database KEKs and the Vault credentials, validated in configmap-override.yaml
+*/}}
+{{- define "wombat.secretsEnv" -}}
+{{- $secrets := .Values.secrets }}
+{{- if eq ($secrets.writeMode | default "disabled") "database" }}
+{{- $database := $secrets.database | default dict }}
+{{- range $id, $_ := $database.kek }}
+- name: WOMBAT_SECRET_DATABASE_KEK_{{ $id | replace "-" "_" | upper }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $database.existingSecret | default (printf "%s-secret-kek" (include "wombat.fullname" $)) | quote }}
+      key: {{ $id | quote }}
+{{- end }}
+{{- end }}
+{{- $vault := $secrets.vault | default dict }}
+{{- if $vault.enabled }}
+{{- $authentication := ($vault.client | default dict).authentication | default dict }}
+{{- if $authentication.clientToken }}
+- name: QUARKUS_VAULT_AUTHENTICATION_CLIENT_TOKEN
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "wombat.fullname" . }}-vault
+      key: client-token
+{{- end }}
+{{- if ($authentication.appRole | default dict).secretId }}
+- name: QUARKUS_VAULT_AUTHENTICATION_APP_ROLE_SECRET_ID
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "wombat.fullname" . }}-vault
+      key: app-role-secret-id
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Mounts the app's secret directory (provisioned and existing Secrets) and Vault's CA
+*/}}
+{{- define "wombat.secretsVolumeMounts" -}}
+{{- if or .Values.secrets.provisioned .Values.secrets.existingSecrets }}
+- name: secrets
+  mountPath: /secrets
+{{- end }}
+{{- if and .Values.secrets.vault.enabled .Values.secrets.vault.caCert }}
+- name: vault-ca
+  mountPath: /etc/wombat/vault
+{{- end }}
+{{- end }}
+
+{{- define "wombat.secretsVolumes" -}}
+{{- if or .Values.secrets.provisioned .Values.secrets.existingSecrets }}
+{{- /* One directory for both, so the app's single directory resolver reads them all */}}
+- name: secrets
+  projected:
+    sources:
+      {{- if .Values.secrets.provisioned }}
+      - secret:
+          name: {{ include "wombat.fullname" . }}-secrets
+      {{- end }}
+      {{- range .Values.secrets.existingSecrets }}
+      - secret:
+          name: {{ . | quote }}
+      {{- end }}
+{{- end }}
+{{- if and .Values.secrets.vault.enabled .Values.secrets.vault.caCert }}
+- name: vault-ca
+  configMap:
+    name: {{ include "wombat.fullname" . }}-vault-ca
+{{- end }}
+{{- end }}
+
+{{/*
 Turns the camelCase keys of a map into the kebab-case keys of application.yaml, recursively, as Pulumi's kebabize does.
 Returns YAML: pipe it into fromYaml.
 */}}

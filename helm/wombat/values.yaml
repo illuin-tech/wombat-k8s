@@ -204,7 +204,7 @@ extensions:
   size: 1Gi
 
 # The secret backends the app resolves secret keys from, such as a kubernetes-api asset's kubeconfig-key. Each one is
-# optional.
+# optional. See https://github.com/illuin-tech/wombat/blob/master/doc/secret-management.md
 secrets:
   # Secrets set with the deployment, by key. They are mounted under /secrets as the app's directory secret resolver, a
   # read-only secret backend. A key is made of letters, digits, "-" and "_".
@@ -212,6 +212,40 @@ secrets:
   # kubeconfig-my-cluster: |
   #   apiVersion: v1
   #   ...
+  # Existing Secrets of the namespace, mounted under /secrets next to the provisioned ones: each of their keys is a secret
+  existingSecrets: []
+  # The backend behind the app's /api/secrets, and the first one it resolves from: disabled, database or vault
+  writeMode: disabled
+  # The database writer's key-encryption keys, used with writeMode database
+  database:
+    # One of the ids of kek
+    activeKekId: ""
+    # Base64 for 32 bytes (openssl rand -base64 32), by id. An id is made of lowercase letters, digits and "-".
+    # With existingSecret, list the ids with empty values: the Secret holds each key under its id.
+    kek: {}
+    #  current: ""
+    existingSecret: ""
+  # HashiCorp Vault KV v2: a read-only resolver, or the writer with writeMode vault
+  vault:
+    enabled: false
+    # The app's default: wombat
+    pathPrefix: ""
+    # The CA that signs Vault's certificate, in PEM: mounted, and set as client.tls.caCert
+    caCert: ""
+    # Written to quarkus.vault, in camelCase: see https://docs.quarkiverse.io/quarkus-vault/dev/index.html
+    client: {}
+    #  url: https://vault.example.com
+    #  kvSecretEngineMountPath: secret
+    #  authentication:  # exactly one of kubernetes, appRole or clientToken
+    #    kubernetes:
+    #      role: wombat  # bound to the pod's ServiceAccount, see serviceAccount
+    #    appRole:
+    #      roleId: CHANGEME
+    #      secretId: CHANGEME  # the chart keeps it in a Secret
+    #    clientToken: CHANGEME  # the chart keeps it in a Secret
+  cache:
+    # How long a resolved secret is kept in memory, e.g. 10m (the app's default). 0 disables the cache.
+    ttl: ""
 
 # Generic application config overrides (merged into application.yaml)
 configOverrides: {}

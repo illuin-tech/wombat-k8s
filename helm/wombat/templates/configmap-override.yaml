@@ -126,8 +126,91 @@ data:
       {{- end }}
     {{- end }}
 
-    {{- if .Values.secrets.provisioned }}
-      {{- $_ := set $wombat "secret" (dict "directory" (dict "path" "/secrets")) }}
+    {{- $secrets := .Values.secrets }}
+    {{- $secret := dict }}
+    {{- if or $secrets.provisioned $secrets.existingSecrets }}
+      {{- $_ := set $secret "directory" (dict "path" "/secrets") }}
+    {{- end }}
+    {{- $writeMode := $secrets.writeMode | default "disabled" }}
+    {{- if not (has $writeMode (list "disabled" "database" "vault")) }}
+      {{- fail (printf "Unsupported secrets.writeMode: %s" $writeMode) }}
+    {{- end }}
+    {{- if ne $writeMode "disabled" }}
+      {{- $_ := set $secret "write-mode" $writeMode }}
+    {{- end }}
+    {{- if eq $writeMode "database" }}
+      {{- $database := $secrets.database | default dict }}
+      {{- $keks := $database.kek | default dict }}
+      {{- if not $keks }}
+        {{- fail "secrets.writeMode database requires at least one secrets.database.kek" }}
+      {{- end }}
+      {{- $kek := dict }}
+      {{- range $id, $value := $keks }}
+        {{- if not (regexMatch "^[a-z0-9-]+$" $id) }}
+          {{- fail (printf "Unsupported secrets.database.kek id: %s. An id is made of lowercase letters, digits and \"-\"" $id) }}
+        {{- end }}
+        {{- if and $database.existingSecret $value }}
+          {{- fail (printf "secrets.database.kek.%s must be empty with secrets.database.existingSecret, which holds it" $id) }}
+        {{- else if not (or $database.existingSecret $value) }}
+          {{- fail (printf "secrets.database.kek.%s is empty" $id) }}
+        {{- end }}
+        {{- /* The key comes from the env var set on the workload, see wombat.secretsEnv */}}
+        {{- $_ := set $kek $id (printf "${WOMBAT_SECRET_DATABASE_KEK_%s}" ($id | replace "-" "_" | upper)) }}
+      {{- end }}
+      {{- if not (hasKey $keks (toString $database.activeKekId)) }}
+        {{- fail (printf "secrets.database.activeKekId must be one of the secrets.database.kek ids: %s" (keys $keks | sortAlpha | join ", ")) }}
+      {{- end }}
+      {{- $_ := set $secret "database" (dict "active-kek-id" $database.activeKekId "kek" $kek) }}
+    {{- end }}
+    {{- $vault := $secrets.vault | default dict }}
+    {{- if and (eq $writeMode "vault") (not $vault.enabled) }}
+      {{- fail "secrets.writeMode vault requires secrets.vault.enabled" }}
+    {{- end }}
+    {{- if $vault.enabled }}
+      {{- $vaultConfig := dict "enabled" true }}
+      {{- if $vault.pathPrefix }}{{ $_ := set $vaultConfig "path-prefix" $vault.pathPrefix }}{{ end }}
+      {{- $_ := set $secret "vault" $vaultConfig }}
+      {{- $client := include "wombat.kebabize" ($vault.client | default dict) | fromYaml }}
+      {{- if not $client.url }}
+        {{- fail "secrets.vault.client.url is required when secrets.vault.enabled is true" }}
+      {{- end }}
+      {{- $authentication := $client.authentication | default dict }}
+      {{- $methods := 0 }}
+      {{- range $method := list "kubernetes" "app-role" "client-token" }}
+        {{- if hasKey $authentication $method }}{{ $methods = add1 $methods }}{{ end }}
+      {{- end }}
+      {{- if ne $methods 1 }}
+        {{- fail "secrets.vault.client.authentication requires exactly one of kubernetes, appRole or clientToken" }}
+      {{- end }}
+      {{- if and (hasKey $authentication "kubernetes") (not (get $authentication "kubernetes" | default dict).role) }}
+        {{- fail "secrets.vault.client.authentication.kubernetes.role is required" }}
+      {{- end }}
+      {{- /* The credentials are kept in the -vault Secret, and come from the env vars set on the workload */}}
+      {{- with get $authentication "app-role" }}
+        {{- if not (and (get . "role-id") (get . "secret-id")) }}
+          {{- fail "secrets.vault.client.authentication.appRole requires roleId and secretId" }}
+        {{- end }}
+        {{- $_ := set . "secret-id" "${QUARKUS_VAULT_AUTHENTICATION_APP_ROLE_SECRET_ID}" }}
+      {{- end }}
+      {{- if hasKey $authentication "client-token" }}
+        {{- $_ := set $authentication "client-token" "${QUARKUS_VAULT_AUTHENTICATION_CLIENT_TOKEN}" }}
+      {{- end }}
+      {{- if $vault.caCert }}
+        {{- $tls := $client.tls | default dict }}
+        {{- if hasKey $tls "ca-cert" }}
+          {{- fail "secrets.vault.caCert and secrets.vault.client.tls.caCert cannot both be set" }}
+        {{- end }}
+        {{- $_ := set $tls "ca-cert" "/etc/wombat/vault/ca.pem" }}
+        {{- $_ := set $client "tls" $tls }}
+      {{- end }}
+      {{- $_ := set $config "quarkus" (dict "vault" $client) }}
+    {{- end }}
+    {{- $ttl := ($secrets.cache | default dict).ttl }}
+    {{- if and (not (kindIs "invalid" $ttl)) (ne (toString $ttl) "") }}
+      {{- $_ := set $secret "cache" (dict "ttl" $ttl) }}
+    {{- end }}
+    {{- if $secret }}
+      {{- $_ := set $wombat "secret" $secret }}
     {{- end }}
 
     {{- if .Values.extensions.enabled }}
@@ -146,7 +229,9 @@ data:
       {{- $credentials := $oidc.credentials | default dict }}
       {{- $_ := set $credentials "secret" "${QUARKUS_OIDC_CREDENTIALS_SECRET}" }}
       {{- $_ := set $oidc "credentials" $credentials }}
-      {{- $_ := set $config "quarkus" (dict "oidc" $oidc) }}
+      {{- $quarkus := $config.quarkus | default dict }}
+      {{- $_ := set $quarkus "oidc" $oidc }}
+      {{- $_ := set $config "quarkus" $quarkus }}
       {{- $_ := set $config "auth" (include "wombat.kebabize" $security.auth | fromYaml) }}
     {{- end }}
 

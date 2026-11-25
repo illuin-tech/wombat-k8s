@@ -63,12 +63,33 @@ config:
     #    roles:
     #      admin: [wombat-admins]
     #      user: [wombat-users]
-    # Optional: secrets set with the deployment, mounted under /secrets as the app's directory secret resolver
+    # Optional: the secret backends the app resolves secret keys from
     #secrets:
+    #  # Secrets set with the deployment, mounted under /secrets as the app's directory secret resolver
     #  provisioned:
     #    # the kubeconfig referenced by the kubernetes-api asset below, set as a secret via:
     #    #   pulumi config set --secret --path 'service.secrets.provisioned.kubeconfig-my-cluster' -- "$(cat ~/.kube/my-cluster.config)"
     #    kubeconfig-my-cluster: CHANGEME
+    #  # Existing Secrets of the namespace, mounted next to them
+    #  existingSecrets: [my-external-secrets]
+    #  # The backend behind /api/secrets: turn on security with it
+    #  writeMode: database
+    #  database:
+    #    activeKekId: current
+    #    kek:
+    #      # set as a secret via:
+    #      #   pulumi config set --secret --path 'service.secrets.database.kek.current' "$(openssl rand -base64 32)"
+    #      current: CHANGEME
+    #  # Vault, read-only unless writeMode is vault
+    #  vault:
+    #    enabled: true
+    #    client:
+    #      url: https://vault.example.com
+    #      authentication:
+    #        kubernetes:
+    #          role: wombat  # bound to the pod's ServiceAccount
+    #  cache:
+    #    ttl: 10m
     #extensions:
     #  # Mount user-provided JAR extensions into /extensions via PVC:
     #  # Option A: Reference an existing PVC
