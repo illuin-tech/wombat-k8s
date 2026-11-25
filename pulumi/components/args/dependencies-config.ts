@@ -4,7 +4,6 @@ import {ContainerDependency, DependencyMode, ExternalDependency, WombatDependenc
 
 const BOAVIZTAPI_PORT: number = 5001;
 const ECOLOGITS_PORT: number = 5002;
-/** The app reads the settings of a module under its full name */
 const BOAVIZTA_MODULE: string = "tech.illuin.wombat-module.boavizta";
 const ECOLOGITS_MODULE: string = "tech.illuin.wombat-module.ecologits";
 
