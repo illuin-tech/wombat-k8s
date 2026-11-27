@@ -32,11 +32,19 @@ worker:
     existingSecret: ""
     proxyUrl: ""
     timeout: ""
+  environments:
+    # Whether PUT /api/worker/environments also declares environments, on top of monitoredEnvironments: called by a process
+    # next to the worker (e.g. one of the sidecars, listing the namespaces of its cluster). Requires an image supporting it.
+    api: false
 
 serviceAccount:
   create: false
   annotations: {}
   name: ""
+
+# Additional containers of the pod, next to Wombat and its dependencies, e.g. one declaring the environments of a worker
+# on http://localhost:8080/api/worker/environments (worker.environments.api: true). They share the pod's ServiceAccount.
+sidecars: []
 
 podAnnotations: {}
 podLabels: {}

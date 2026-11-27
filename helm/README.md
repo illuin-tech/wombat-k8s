@@ -51,6 +51,7 @@ The following table lists the configurable parameters of the Wombat chart and th
 | `serviceAccount.create` | Whether to create a ServiceAccount | `false` |
 | `serviceAccount.annotations` | Annotations for the ServiceAccount | `{}` |
 | `serviceAccount.name` | Name of the ServiceAccount to use | `""` |
+| `sidecars` | Additional containers of the pod, next to Wombat and its dependencies, sharing its ServiceAccount (e.g. one declaring the environments of a worker) | `[]` |
 | `resources.limits.cpu` | CPU resource limit for Wombat container | `1000m` |
 | `resources.limits.memory` | Memory resource limit for Wombat container | `1024Mi` |
 | `resources.requests.cpu` | CPU resource request for Wombat container | `200m` |
@@ -69,6 +70,7 @@ The following table lists the configurable parameters of the Wombat chart and th
 | `worker.aggregator.existingSecret` | Existing Secret containing the aggregator API key under `api-key` | `""` |
 | `worker.aggregator.proxyUrl` | Optional HTTP proxy to reach the aggregator through | `""` |
 | `worker.aggregator.timeout` | Optional connect and read timeout of each request to the aggregator (e.g. `30s`) | `""` |
+| `worker.environments.api` | Whether environments are also declared at runtime on `PUT http://localhost:8080/api/worker/environments`, e.g. by one of the `sidecars`, on top of `monitoredEnvironments`. See [environments declared through the API](https://github.com/illuin-tech/wombat/blob/master/doc/distributed.md#environments-declared-through-the-api) | `false` |
 
 Each release deploys a single instance: a distributed setup is one `aggregator` release plus one `worker` release next to each environment the aggregator cannot reach. A worker writes no metric to its own database, so it requires `persistence.type: SQLITE_TRANSIENT`. See the [Wombat distributed setup documentation](https://github.com/illuin-tech/wombat/blob/master/doc/distributed.md) for details.
 

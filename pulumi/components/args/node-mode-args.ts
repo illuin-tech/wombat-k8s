@@ -38,6 +38,14 @@ export interface Worker extends NodeModeProfileBase {
         proxyUrl?: pulumi.Input<string>;
         timeout?: pulumi.Input<string>;
     };
+    environments?: {
+        /*
+         * Whether PUT /api/worker/environments also declares environments, on top of monitoredEnvironments: called by a
+         * process next to the worker, e.g. a sidecar listing the namespaces of its cluster. false by default. Requires an
+         * image supporting it.
+         */
+        api?: boolean;
+    };
 }
 
 export type NodeModeProfile = Standalone | Aggregator | Worker;

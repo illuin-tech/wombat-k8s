@@ -29,6 +29,10 @@ export class NodeModeConfigCompiler implements AppConfigCompiler {
                     id: args.mode.id,
                     aggregator: args.mode.aggregator,
                 };
+                // Left unset by default, as images predating the setting do not know it
+                if (args.mode.environments?.api) {
+                    config.wombat.worker.environments = { api: true };
+                }
                 return { config };
         }
 

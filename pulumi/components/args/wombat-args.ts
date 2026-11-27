@@ -65,6 +65,11 @@ export interface WombatArgs {
     ingress?: IngressArgs;
     /** An existing ServiceAccount for the pod, e.g. the one a Vault `kubernetes` role is bound to. `default` otherwise. */
     serviceAccountName?: pulumi.Input<string>;
+    /**
+     * Additional containers of the pod, next to Wombat and its dependencies, e.g. one declaring the environments of a
+     * worker on `http://localhost:8080/api/worker/environments`. They share the pod's ServiceAccount.
+     */
+    sidecars?: k8s.types.input.core.v1.Container[];
     resources?: k8s.types.input.core.v1.ResourceRequirements;
     jvmOptions?: JVMOptions;
 }
