@@ -258,6 +258,7 @@ export class WombatResource extends pulumi.ComponentResource {
                 },
             },
             ...createDependencyContainers(args.dependencies),
+            ...(args.sidecars || []),
         ];
 
         const workloadName: string = `wombat-service-${args.environment}`;

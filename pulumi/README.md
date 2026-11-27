@@ -80,6 +80,26 @@ pulumi config set --path 'service.mode.aggregator.url' https://wombat-aggregator
 pulumi config set --secret --path 'service.mode.aggregator.apiKey' <api-key>
 ```
 
+A worker samples and declares its `monitoredEnvironments`. With `mode.environments.api: true`, more environments are
+declared at runtime on `PUT http://localhost:8080/api/worker/environments` by a process next to it, typically one of the
+`sidecars` (e.g. one environment per namespace of the cluster, listed with the pod's ServiceAccount). Both may share an
+environment, not an asset id. See [environments declared through the API](https://github.com/illuin-tech/wombat/blob/master/doc/distributed.md#environments-declared-through-the-api).
+
+```typescript
+mode: {
+    type: NodeMode.WORKER,
+    id: "east",
+    aggregator: { url: "https://wombat-aggregator.example.com", apiKey: apiKey },
+    environments: { api: true },
+},
+serviceAccountName: "wombat-namespace-reader",  // allowed to list namespaces, through a ClusterRole
+sidecars: [{
+    name: "namespace-declarer",
+    image: "bitnami/kubectl:1.31",
+    command: ["sh", "-c", "while true; do /scripts/declare.sh; sleep 60; done"],
+}],
+```
+
 ### Provisioned Environments (optional)
 
 `monitoredEnvironments` is optional. Without it, Wombat starts with no environment, and they are created from its dashboard or its API. With it, the environments it declares are provisioned at every startup: kept in sync with your stack, and read-only in the app. See [environments and provisioning](https://github.com/illuin-tech/wombat/blob/master/doc/provisioning.md).
@@ -208,6 +228,7 @@ pulumi config set --secret --path 'service.persistence.backup.s3.secretKey' <sec
 * `container.imageVersion`: the `wombat` image tag to deploy.
 * `container.pullSecret`: optional; GAR/GCR service account JSON (as a secret) for pulling the image from a private registry.
 * `serviceAccountName`: optional; an existing ServiceAccount for the pod, e.g. the one a Vault `kubernetes` role is bound to. The namespace's `default` otherwise.
+* `sidecars`: optional; additional containers of the pod, next to Wombat and its dependencies, sharing its ServiceAccount. E.g. one declaring the environments of a worker, see [Deployment Mode](#deployment-mode).
 * `resources`: K8S `resources.limits` and `resources.requests` for the container.
 * `jvmOptions`: JVM options such as `xms: 512M`, `xmx: 512M`.
 * `ingress`: optional; set `className`, `host`, `path`, `pathType`, `annotations`, and `tlsSecretName` to expose the service through an `Ingress`.

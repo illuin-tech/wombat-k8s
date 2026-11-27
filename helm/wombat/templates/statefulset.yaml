@@ -120,6 +120,9 @@ spec:
           resources:
             {{- toYaml .Values.dependencies.ecologits.resources | nindent 12 }}
         {{- end }}
+        {{- with .Values.sidecars }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       volumes:
         - name: conf-override
           configMap:

@@ -89,7 +89,12 @@ data:
       {{- if .Values.worker.aggregator.proxyUrl }}{{ $_ := set $aggregator "proxy-url" .Values.worker.aggregator.proxyUrl }}{{ end }}
       {{- if .Values.worker.aggregator.timeout }}{{ $_ := set $aggregator "timeout" .Values.worker.aggregator.timeout }}{{ end }}
       {{- /* The API key comes from the WOMBAT_WORKER_AGGREGATOR_API_KEY env var set on the Deployment */}}
-      {{- $_ := set $wombat "worker" (dict "id" .Values.worker.id "aggregator" $aggregator) }}
+      {{- $worker := dict "id" .Values.worker.id "aggregator" $aggregator }}
+      {{- if (.Values.worker.environments).api }}
+        {{- /* Left unset by default, as images predating the setting do not know it */}}
+        {{- $_ := set $worker "environments" (dict "api" true) }}
+      {{- end }}
+      {{- $_ := set $wombat "worker" $worker }}
     {{- end }}
 
     {{- $settings := dict }}
